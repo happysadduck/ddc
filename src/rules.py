@@ -5,18 +5,18 @@ def norm_pos(pos):
     y,x=pos
     while(y<0):
         y+=HEI
-    while(y>HEI):
+    while(y>=HEI):
         y-=HEI
     while(x<0):
         x+=WID
-    while(x>WID):
+    while(x>=WID):
         x-=WID
     return y,x
 
 class GameState:
     def __init__(
         self,
-        board=[None]*WID*HEI,
+        board=None,
         current_player=0,
         legal_actions_O=set([
             (4, 10),
@@ -32,6 +32,10 @@ class GameState:
         ]),
         state=(0,-1)
     ):
+        if(board==None):
+            board=[None]*WID*HEI
+            board[4*WID+11]=0
+            board[14*WID+3]=1
         self.current_player=current_player
         self.board=board
         self.legal_actions_O=legal_actions_O
@@ -42,14 +46,16 @@ class GameState:
             return list(self.legal_actions_X)
         return list(self.legal_actions_O)
     # ↓ TODO
-    # 1. debug
-    # 2. draw examine
+    # 1. bugs in removing
     def apply_action(self, action)->'GameState':
         directions=[
             (0,1), (0,-1),
             (1,0), (-1,0)
         ]
         board=self.board[:]
+        board[action[0]*WID+action[1]]=(
+            self.current_player
+        )
         def cnt_suc(
                 start_pos, direction, target
             ):
@@ -59,6 +65,7 @@ class GameState:
                 cnt+=1
                 y+=direction[0]
                 x+=direction[1]
+                y,x=norm_pos((y,x))
             return cnt
         def apply_remove(removed_pos, player):
             board[
@@ -69,12 +76,14 @@ class GameState:
                 y,x=removed_pos
                 y+=direction[0],
                 x+=direction[1]
+                y,x=norm_pos((y,x))
                 suc_cnt=cnt_suc(
                     (y,x), direction,
                     player
                 )
                 y+=suc_cnt*direction[0]
                 x+=suc_cnt*direction[1]
+                y,x=norm_pos((y,x))
                 if(suc_cnt==0):
                     continue
                 if(board[y*WID+x]!=None):
@@ -86,11 +95,13 @@ class GameState:
                         y,x=removed_pos
                         y+=direction[0]
                         x+=direction[1]
+                        y,x=norm_pos((y,x))
                         for _ in range(suc_cnt):
                             apply_remove(
                                 (y,x), player)
                             y+=direction[0]
                             x+=direction[1]
+                            y,x=norm_pos((y,x))
         lenths_each_direction=[
             cnt_suc(
                 action, direction,
@@ -108,6 +119,7 @@ class GameState:
             direction=directions[i]
             y=action[0]+direction[0]*lenth
             x=action[1]+direction[1]*lenth
+            y,x=norm_pos((y,x))
             if(board[y*WID+x]!=None):
                 enemy_cnt=cnt_suc(
                     (y,x), direction,
@@ -124,6 +136,7 @@ class GameState:
                             self.current_player)
                         y+=direction[0]
                         x+=direction[1]
+                        y,x=norm_pos((y,x))
         if(board[4*WID+11]==None):
             return GameState(
                 board, 1-self.current_player,
@@ -138,42 +151,61 @@ class GameState:
             self.legal_actions_O.copy())
         legal_actions_X=(
             self.legal_actions_X.copy())
+        legal_actions=(
+            legal_actions_X if
+            self.current_player
+            else legal_actions_O
+        )
         for direction in directions:
-            new_y=action[0]+direction[0]
-            new_x=action[1]+direction[1]
+            exm_y=action[0]+direction[0]
+            exm_x=action[1]+direction[1]
+            exm_y,exm_x=norm_pos((exm_y,exm_x))
             if(
-                board[new_y*WID+new_x]!=None
+                board[exm_y*WID+exm_x]!=None
             ):
                 continue
             flag=True
             for exam_dir in directions:
                 friend_cnt=cnt_suc(
                     (
-                        new_y+exam_dir[0],
-                        new_x+exam_dir[1]
+                        norm_pos(
+                        (exm_y+exam_dir[0],
+                        exm_x+exam_dir[1]))
                     ),
                     exam_dir,
                     self.current_player
                 )
                 enemy_cnt=cnt_suc(
                     (
-                        new_x-exam_dir[0],
-                        new_y-exam_dir[1]
+                        norm_pos(
+                        (exm_y-exam_dir[0],
+                        exm_x-exam_dir[1]))
                     ),
                     (-exam_dir[0], -exam_dir[1]),
                     1-self.current_player
                 )
                 if(friend_cnt+1<enemy_cnt):
                     flag=False
-                    break
+                    continue
+                if(friend_cnt>enemy_cnt+1):
+                    enemy_legal_actions=(
+                        legal_actions_O if
+                        self.current_player
+                        else legal_actions_X
+                    )
+                    enemy_legal_actions.discard(
+                        (exm_y, exm_x)
+                    )
             if(flag):
-                legal_actions=(
-                    legal_actions_X if
-                    self.current_player
-                    else legal_actions_O
-                )
-                legal_actions.add((new_y, new_x))
-        legal_actions.remove((new_y, new_x))
+                legal_actions.add((exm_y, exm_x))
+        legal_actions.remove((action[0], action[1]))
+        if((not legal_actions_O)
+            and(not legal_actions_X)):
+            return GameState(
+                board, 1-self.current_player,
+                legal_actions_O, legal_actions_X,
+                (1,-1)
+            )
         return GameState(
             board, 1-self.current_player,
             legal_actions_O, legal_actions_X,
@@ -193,5 +225,34 @@ class GameState:
         pass
     def __eq__(self, other):
         pass
-    def __repr__(self):
-        pass
+    def __str__(self):
+        out_list=[]
+        for x in range(WID):
+            out_list.append(chr(x+65)+" ")
+        out_list.append("\n")
+        for y in range(HEI):
+            for x in range(WID):
+                if(self.board[y*WID+x]==None):
+                    legal_actions=(
+                        self.legal_actions_X
+                        if self.current_player
+                        else self.legal_actions_O
+                    )
+                    if(
+                        (y,x) in
+                        legal_actions
+                    ):
+                        out_list.append("+ ")
+                        continue
+                    out_list.append(". ")
+                    continue
+                if(self.board[y*WID+x]==0):
+                    out_list.append("O ")
+                    continue
+                if(self.board[y*WID+x]==1):
+                    out_list.append("X ")
+                    continue
+            out_list.append(chr(y+1+ord("0"))+"\n")
+        out=""
+        out=out.join(out_list)
+        return out
