@@ -30,7 +30,8 @@ class GameState:
             (15,3),
             (14,4)
         ]),
-        state=(0,-1)
+        state=(0,-1),
+        last_action=None
     ):
         if(board==None):
             board=[None]*WID*HEI
@@ -41,12 +42,14 @@ class GameState:
         self.legal_actions_O=legal_actions_O
         self.legal_actions_X=legal_actions_X
         self.state=state
+        self.last_action=last_action
     def get_legal_actions(self)->list:
         if(self.current_player):
             return list(self.legal_actions_X)
         return list(self.legal_actions_O)
     # ↓ TODO
-    # 1. bugs in removing
+    # 1. bugs in removing (not updating legal moves when removing)
+    # 2. never stop loops
     def apply_action(self, action)->'GameState':
         directions=[
             (0,1), (0,-1),
@@ -74,7 +77,7 @@ class GameState:
             ]=None
             for direction in directions:
                 y,x=removed_pos
-                y+=direction[0],
+                y+=direction[0]
                 x+=direction[1]
                 y,x=norm_pos((y,x))
                 suc_cnt=cnt_suc(
@@ -140,12 +143,12 @@ class GameState:
         if(board[4*WID+11]==None):
             return GameState(
                 board, 1-self.current_player,
-                set(), set(), (1,1)
+                set(), set(), (1,1), action
             )
         if(board[14*WID+3]==None):
             return GameState(
                 board, 1-self.current_player,
-                set(), set(), (1,0)
+                set(), set(), (1,0), action
             )
         legal_actions_O=(
             self.legal_actions_O.copy())
@@ -204,12 +207,12 @@ class GameState:
             return GameState(
                 board, 1-self.current_player,
                 legal_actions_O, legal_actions_X,
-                (1,-1)
+                (1,-1), action
             )
         return GameState(
             board, 1-self.current_player,
             legal_actions_O, legal_actions_X,
-            (0,-1)
+            (0,-1), action
         )
     def get_current_player(self)->int:
         return self.current_player
@@ -232,6 +235,11 @@ class GameState:
         out_list.append("\n")
         for y in range(HEI):
             for x in range(WID):
+                if(
+                    (y,x)==self.last_action
+                ):
+                    out_list.append("@ ")
+                    continue
                 if(self.board[y*WID+x]==None):
                     legal_actions=(
                         self.legal_actions_X
