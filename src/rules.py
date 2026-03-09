@@ -48,8 +48,12 @@ class GameState:
             return list(self.legal_actions_X)
         return list(self.legal_actions_O)
     # ↓ TODO
-    # 1. bugs in removing (not updating legal moves when removing)
+    # 1. bugs in removing 
+    # (not updating legal moves when removing)
     # 2. never stop loops
+    # suggests:
+    # s1. use tuple to store legality of pos
+    # s2. reduce some code in apply_remove
     def apply_action(self, action)->'GameState':
         directions=[
             (0,1), (0,-1),
@@ -111,11 +115,49 @@ class GameState:
             if(X_legal):
                 return 1
             return None
+        def is_beside(pos):
+            y,x=pos
+            beside_O=False
+            beside_X=False
+            for direction in directions:
+                y+=direction[0]
+                x+=direction[1]
+                y,x=norm_pos((t,x))
+                if(board[y*WID+x]==0):
+                    beside_O=True
+                elif(board[y*WID+x]==1):
+                    beside_X=True
+            if(beside_O and beside_X):
+                return 2
+            if(beside_O):
+                return 0
+            if(beside_X):
+                return 1
+            return None
+        def is_legal_pos_strict(pos):
+            beside_info=is_beside(pos)
+            legal_info=is_legal_pos(pos)
+            if(beside_info==None):
+                return None
+            if(beside_info==1):
+                if(legal_info==2 or
+                    legal_info==1):
+                    return 1
+                return None
+            if(beside_info==2):
+                if(legal_info==2 or
+                    legal_info==0):
+                    return 0
+                return None
+            return legal_info
         def apply_remove(removed_pos, player):
             board[
                 removed_pos[0]*WID
                 +removed_pos[1]
             ]=None
+            # TODO
+            # each remove:
+            # update itself & 4 pos beside it
             for direction in directions:
                 y,x=removed_pos
                 y+=direction[0]
