@@ -5,14 +5,8 @@ HEI=19
 
 def norm_pos(pos):
     y,x=pos
-    while(y<0):
-        y+=HEI
-    while(y>=HEI):
-        y-=HEI
-    while(x<0):
-        x+=WID
-    while(x>=WID):
-        x-=WID
+    y%=HEI
+    x%=WID
     return y,x
 
 class GameState:
