@@ -87,7 +87,7 @@ class GameState:
         def is_legal_pos(pos):
             y,x=pos
             if(board[y*WID+x]!=None):
-                return None
+                return (0,0)
             O_legal=True
             X_legal=True
             for direction in directions:
@@ -108,13 +108,7 @@ class GameState:
                     O_legal=False
                 elif(O_cnt>X_cnt+1):
                     X_legal=False
-            if(O_legal and X_legal):
-                return 2
-            if(O_legal):
-                return 0
-            if(X_legal):
-                return 1
-            return None
+            return(O_legal,X_legal)
         def is_beside(pos):
             y,x=pos
             beside_O=False
@@ -122,34 +116,21 @@ class GameState:
             for direction in directions:
                 y+=direction[0]
                 x+=direction[1]
-                y,x=norm_pos((t,x))
+                y,x=norm_pos((y,x))
                 if(board[y*WID+x]==0):
                     beside_O=True
                 elif(board[y*WID+x]==1):
                     beside_X=True
-            if(beside_O and beside_X):
-                return 2
-            if(beside_O):
-                return 0
-            if(beside_X):
-                return 1
-            return None
+            return(beside_O,beside_X)
         def is_legal_pos_strict(pos):
             beside_info=is_beside(pos)
             legal_info=is_legal_pos(pos)
-            if(beside_info==None):
-                return None
-            if(beside_info==1):
-                if(legal_info==2 or
-                    legal_info==1):
-                    return 1
-                return None
-            if(beside_info==2):
-                if(legal_info==2 or
-                    legal_info==0):
-                    return 0
-                return None
-            return legal_info
+            return(
+                beside_info[0] and
+                legal_info[0],
+                beside_info[1] and
+                legal_info[1]
+            )
         def apply_remove(removed_pos, player):
             board[
                 removed_pos[0]*WID
@@ -227,15 +208,13 @@ class GameState:
             legal_state=is_legal_pos(
                 (exm_y,exm_x)
             )
-            if(legal_state==2):
+            if(legal_state[
+                self.current_player
+            ]):
                 legal_actions.add((exm_y,exm_x))
-            elif(legal_state==
-                self.current_player):
-                legal_actions.add((exm_y,exm_x))
-                enemy_actions.discard(
-                    (exm_y,exm_x)
-                )
-            elif(legal_state==None):
+            if(not legal_state[
+                1-self.current_player
+            ]):
                 enemy_actions.discard(
                     (exm_y,exm_x)
                 )
