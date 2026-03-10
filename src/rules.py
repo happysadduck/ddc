@@ -63,12 +63,27 @@ class GameState:
         board[action[0]*WID+action[1]]=(
             self.current_player
         )
+        legal_actions_O=(
+            self.legal_actions_O.copy())
+        legal_actions_X=(
+            self.legal_actions_X.copy())
+        legal_actions,enemy_actions=(
+            (legal_actions_X,legal_actions_O) if
+            self.current_player
+            else (legal_actions_O,legal_actions_X)
+        )
         def cnt_suc(
             start_pos, direction, target
         ):
+            max_cnt=0
+            if(direction[0]):
+                max_cnt=HEI
+            elif(direction[1]):
+                max_cnt=WID
             cnt=0
             y,x=start_pos
-            while(board[y*WID+x]==target):
+            while(board[y*WID+x]==target
+                and cnt<max_cnt):
                 cnt+=1
                 y+=direction[0]
                 x+=direction[1]
@@ -101,7 +116,7 @@ class GameState:
                      x-direction[1])),
                     (
                         -direction[0],
-                        direction[1]
+                        -direction[1]
                     ), 1
                 )
                 if(O_cnt+1<X_cnt):
@@ -114,6 +129,7 @@ class GameState:
             beside_O=False
             beside_X=False
             for direction in directions:
+                y,x=pos
                 y+=direction[0]
                 x+=direction[1]
                 y,x=norm_pos((y,x))
@@ -131,11 +147,26 @@ class GameState:
                 beside_info[1] and
                 legal_info[1]
             )
-        def apply_remove(removed_pos, player):
+        def update_legal_moves(pos):
+            if(board[
+                pos[0]*WID+pos[1]
+            ]!=None):
+                return
+            legal_state=is_legal_pos_strict(pos)
+            if(legal_state[0]):
+                legal_actions_O.add(pos)
+            else:
+                legal_actions_O.discard(pos)
+            if(legal_state[1]):
+                legal_actions_X.add(pos)
+            else:
+                legal_actions_X.discard(pos)
+        def apply_remove(removed_pos, removed):
             board[
                 removed_pos[0]*WID
                 +removed_pos[1]
             ]=None
+            update_legal_moves(removed_pos)
             # TODO
             # each remove:
             # update itself & 4 pos beside it
@@ -144,31 +175,25 @@ class GameState:
                 y+=direction[0]
                 x+=direction[1]
                 y,x=norm_pos((y,x))
+                update_legal_moves((y,x))
                 suc_cnt=cnt_suc(
                     (y,x), direction,
-                    player
+                    removed
                 )
                 y+=suc_cnt*direction[0]
                 x+=suc_cnt*direction[1]
                 y,x=norm_pos((y,x))
-                if(suc_cnt==0):
-                    continue
                 if(board[y*WID+x]!=None):
-                    enemy_cnt=cnt_suc(
-                        (y,x), direction,
-                        1-player
-                    )
-                    if(suc_cnt<enemy_cnt):
-                        y,x=removed_pos
+                    y,x=removed_pos
+                    y+=direction[0]
+                    x+=direction[1]
+                    y,x=norm_pos((y,x))
+                    for _ in range(suc_cnt):
+                        apply_remove(
+                            (y,x), removed)
                         y+=direction[0]
                         x+=direction[1]
                         y,x=norm_pos((y,x))
-                        for _ in range(suc_cnt):
-                            apply_remove(
-                                (y,x), player)
-                            y+=direction[0]
-                            x+=direction[1]
-                            y,x=norm_pos((y,x))
         for direction in directions:
             y,x=mv_suc(
                 action, direction,
@@ -192,15 +217,6 @@ class GameState:
                 board, 1-self.current_player,
                 set(), set(), (1,0), action
             )
-        legal_actions_O=(
-            self.legal_actions_O.copy())
-        legal_actions_X=(
-            self.legal_actions_X.copy())
-        legal_actions,enemy_actions=(
-            (legal_actions_X,legal_actions_O) if
-            self.current_player
-            else (legal_actions_O,legal_actions_X)
-        )
         for direction in directions:
             exm_y=action[0]+direction[0]
             exm_x=action[1]+direction[1]
