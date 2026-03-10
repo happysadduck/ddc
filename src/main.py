@@ -2,13 +2,15 @@ import rules
 import random
 import os
 
-random.seed(1)
+random.seed(4)
 
 x=rules.GameState()
+i=0
 
-for i in range(1000):
+while(x.is_terminal()==False):
     move=random.choice(x.get_legal_actions())
     x=x.apply_action(move)
-    print("STAGE",i)
-    print(x)
+    print("STATE",i)
+    x.__repr__()
+    i+=1
     # os.system('cls' if os.name == 'nt' else 'clear')

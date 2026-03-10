@@ -1,3 +1,5 @@
+from rich import print
+
 WID=15
 HEI=19
 
@@ -47,13 +49,7 @@ class GameState:
         if(self.current_player):
             return list(self.legal_actions_X)
         return list(self.legal_actions_O)
-    # ↓ TODO
-    # 1. bugs in removing 
-    # (not updating legal moves when removing)
-    # 2. never stop loops
-    # suggests:
-    # s1. use tuple to store legality of pos
-    # s2. reduce some code in apply_remove
+    # TODO
     def apply_action(self, action)->'GameState':
         directions=[
             (0,1), (0,-1),
@@ -67,11 +63,6 @@ class GameState:
             self.legal_actions_O.copy())
         legal_actions_X=(
             self.legal_actions_X.copy())
-        legal_actions,enemy_actions=(
-            (legal_actions_X,legal_actions_O) if
-            self.current_player
-            else (legal_actions_O,legal_actions_X)
-        )
         def cnt_suc(
             start_pos, direction, target
         ):
@@ -89,16 +80,6 @@ class GameState:
                 x+=direction[1]
                 y,x=norm_pos((y,x))
             return cnt
-        def mv_suc(
-            start_pos, direction, target
-        ):
-            y,x=start_pos
-            lenth=cnt_suc(
-                start_pos,direction,target
-            )
-            y+=direction[0]*lenth
-            x+=direction[1]*lenth
-            return norm_pos((y,x))
         def is_legal_pos(pos):
             y,x=pos
             if(board[y*WID+x]!=None):
@@ -148,10 +129,6 @@ class GameState:
                 legal_info[1]
             )
         def update_legal_moves(pos):
-            if(board[
-                pos[0]*WID+pos[1]
-            ]!=None):
-                return
             legal_state=is_legal_pos_strict(pos)
             if(legal_state[0]):
                 legal_actions_O.add(pos)
@@ -167,9 +144,6 @@ class GameState:
                 +removed_pos[1]
             ]=None
             update_legal_moves(removed_pos)
-            # TODO
-            # each remove:
-            # update itself & 4 pos beside it
             for direction in directions:
                 y,x=removed_pos
                 y+=direction[0]
@@ -195,11 +169,16 @@ class GameState:
                         x+=direction[1]
                         y,x=norm_pos((y,x))
         for direction in directions:
-            y,x=mv_suc(
-                action, direction,
+            y,x=action
+            suc_lenth=cnt_suc(
+                action,direction,
                 self.current_player
             )
-            if(board[y*WID+x]!=None):
+            y+=direction[0]*suc_lenth
+            x+=direction[1]*suc_lenth
+            y,x=norm_pos((y,x))
+            if(board[y*WID+x]==
+                1-self.current_player):
                 while(board[y*WID+x]==
                     1-self.current_player):
                     apply_remove((y,x), 1-
@@ -207,6 +186,8 @@ class GameState:
                     y+=direction[0]
                     x+=direction[1]
                     y,x=norm_pos((y,x))
+            else:
+                update_legal_moves((y,x))
         if(board[4*WID+11]==None):
             return GameState(
                 board, 1-self.current_player,
@@ -217,29 +198,12 @@ class GameState:
                 board, 1-self.current_player,
                 set(), set(), (1,0), action
             )
-        for direction in directions:
-            exm_y=action[0]+direction[0]
-            exm_x=action[1]+direction[1]
-            exm_y,exm_x=norm_pos((exm_y,exm_x))
-            legal_state=is_legal_pos(
-                (exm_y,exm_x)
-            )
-            if(legal_state[
-                self.current_player
-            ]):
-                legal_actions.add((exm_y,exm_x))
-            if(not legal_state[
-                1-self.current_player
-            ]):
-                enemy_actions.discard(
-                    (exm_y,exm_x)
-                )
-        legal_actions.remove((action[0],action[1]))
+        update_legal_moves(action)
         if((not legal_actions_O)
-            and(not legal_actions_X)):
+            or (not legal_actions_X)):
             return GameState(
                 board, 1-self.current_player,
-                legal_actions_O, legal_actions_X,
+                set(), set(),
                 (1,-1), action
             )
         return GameState(
@@ -261,17 +225,18 @@ class GameState:
         pass
     def __eq__(self, other):
         pass
-    def __str__(self):
-        out_list=[]
+    # TODO:
+    # too ugly colors!
+    def __repr__(self):
         for x in range(WID):
-            out_list.append(chr(x+65)+" ")
-        out_list.append("\n")
+            print(chr(x+65)+" ",end="")
+        print()
         for y in range(HEI):
             for x in range(WID):
                 if(
                     (y,x)==self.last_action
                 ):
-                    out_list.append("@ ")
+                    print("[yellow]@ [/yellow]",end="")
                     continue
                 if(self.board[y*WID+x]==None):
                     legal_actions=(
@@ -283,17 +248,15 @@ class GameState:
                         (y,x) in
                         legal_actions
                     ):
-                        out_list.append("+ ")
+                        print("+ ",end="")
                         continue
-                    out_list.append(". ")
+                    print(". ",end="")
                     continue
                 if(self.board[y*WID+x]==0):
-                    out_list.append("O ")
+                    print("[red]O [red]",end="")
                     continue
                 if(self.board[y*WID+x]==1):
-                    out_list.append("X ")
+                    print("[green]X [/green]",end="")
                     continue
-            out_list.append(chr(y+1+ord("0"))+"\n")
-        out=""
-        out=out.join(out_list)
-        return out
+            print(y+1)
+        print()
