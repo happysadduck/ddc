@@ -132,7 +132,7 @@ class GameState:
                 legal_actions_X.add(pos)
             else:
                 legal_actions_X.discard(pos)
-        def apply_remove(removed_pos, removed):
+        def apply_remove(removed_pos):
             board[
                 removed_pos[0]*WID
                 +removed_pos[1]
@@ -144,24 +144,6 @@ class GameState:
                 x+=direction[1]
                 y,x=norm_pos((y,x))
                 update_legal_moves((y,x))
-                suc_cnt=cnt_suc(
-                    (y,x), direction,
-                    removed
-                )
-                y+=suc_cnt*direction[0]
-                x+=suc_cnt*direction[1]
-                y,x=norm_pos((y,x))
-                if(board[y*WID+x]!=None):
-                    y,x=removed_pos
-                    y+=direction[0]
-                    x+=direction[1]
-                    y,x=norm_pos((y,x))
-                    for _ in range(suc_cnt):
-                        apply_remove(
-                            (y,x), removed)
-                        y+=direction[0]
-                        x+=direction[1]
-                        y,x=norm_pos((y,x))
         for direction in directions:
             y,x=action
             suc_lenth=cnt_suc(
@@ -175,8 +157,7 @@ class GameState:
                 1-self.current_player):
                 while(board[y*WID+x]==
                     1-self.current_player):
-                    apply_remove((y,x), 1-
-                        self.current_player)
+                    apply_remove((y,x))
                     y+=direction[0]
                     x+=direction[1]
                     y,x=norm_pos((y,x))
