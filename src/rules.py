@@ -184,6 +184,9 @@ class GameState:
         winner = self.state[1]
         return 1.0 if player_id == winner else -1.0
 
+    def get_board(self):
+        return self.board
+
     # TODO:
     # too ugly colors!
     def __repr__(self):

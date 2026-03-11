@@ -5,7 +5,7 @@ import policy
 if __name__ == "__main__":
     # 基础MCTS（无神经网络）
     config = mcts.MCTSConfig(num_simulations=1000, temperature=1)
-    mcts = mcts.MCTS(config)
+    tree = mcts.MCTS(config)
 
     state = rules.GameState()
     print("初始状态:")
@@ -13,7 +13,7 @@ if __name__ == "__main__":
 
     # MCTS自我对弈
     while not state.is_terminal():
-        action, probs = mcts.search(state)
+        action, probs = tree.search(state)
         print(f"\n动作概率: {probs}")
         print(f"选择动作: {action}")
 
