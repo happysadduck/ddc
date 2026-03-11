@@ -20,7 +20,7 @@ if __name__ == "__main__":
         state = state.apply_action(action)
         state.__repr__()
 
-        mcts.update_root(action)  # 重用搜索树
+        tree.update_root(action)  # 重用搜索树
 
-    winner = state.get_winner()
+    winner = state.state[1]
     print(f"游戏结束，获胜者: {'X' if winner == 0 else 'O' if winner == 1 else '平局'}")

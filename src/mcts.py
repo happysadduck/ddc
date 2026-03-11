@@ -27,6 +27,7 @@ class MCTSNode:
         "total_value",
         "prior_prob",
         "player_id",
+        "prior_dict",
     ]
 
     def __init__(self, state, parent=None, action=None, prior_prob=1.0):
@@ -100,10 +101,17 @@ class MCTS:
             self._backup(node, value)
             if i % 100 == 0:
                 visits = {a: n.visit_count for a, n in self.root.children.items()}
-                print(f"Sim {i}: {visits}")
+                values = {
+                    a: round(n.total_value, 2) for a, n in self.root.children.items()
+                }
+                print(f"Sim {i}: visits={visits}, values={values}")
 
         action_visits = {a: n.visit_count for a, n in self.root.children.items()}
+        action_values = {
+            a: round(n.total_value, 2) for a, n in self.root.children.items()
+        }
         print(f"Final visits: {action_visits}")
+        print(f"Final values: {action_values}")
         total_visits = sum(action_visits.values())
 
         if self.config.temperature == 0:

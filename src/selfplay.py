@@ -24,6 +24,7 @@ class SelfPlay:
         game_history = []
 
         while not state.is_terminal():
+            print(state.__repr__())
             current_player = state.get_current_player()
             state_tensor = self.policy._state_to_tensor(state)
 
@@ -106,6 +107,10 @@ if __name__ == "__main__":
     )
 
     total = generate_games(
-        net, num_games=10, num_simulations=100, save_dir="./selfplay_data", batch_size=5
+        net,
+        num_games=10,
+        num_simulations=1000,
+        save_dir="./selfplay_data",
+        batch_size=5,
     )
     print(f"Total samples collected: {total}")
