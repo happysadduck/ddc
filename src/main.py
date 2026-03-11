@@ -1,17 +1,26 @@
 import rules
-import random
+import mcts
+import policy
 
-seed=0
-i=10000
+if __name__ == "__main__":
+    # 基础MCTS（无神经网络）
+    config = mcts.MCTSConfig(num_simulations=1000, temperature=1)
+    mcts = mcts.MCTS(config)
 
-while i>=150:
-    i=0
-    x=rules.GameState()
-    random.seed(seed)
-    while(x.is_terminal()==False):
-        move=random.choice(x.get_legal_actions())
-        x=x.apply_action(move)
-        i+=1
-    print(i, seed)
-    seed+=1
-    
+    state = rules.GameState()
+    print("初始状态:")
+    state.__repr__()
+
+    # MCTS自我对弈
+    while not state.is_terminal():
+        action, probs = mcts.search(state)
+        print(f"\n动作概率: {probs}")
+        print(f"选择动作: {action}")
+
+        state = state.apply_action(action)
+        state.__repr__()
+
+        mcts.update_root(action)  # 重用搜索树
+
+    winner = state.get_winner()
+    print(f"游戏结束，获胜者: {'X' if winner == 0 else 'O' if winner == 1 else '平局'}")
