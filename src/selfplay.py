@@ -9,13 +9,13 @@ import numpy as np
 
 
 class SelfPlay:
-    def __init__(self, net: policy.Net, num_simulations=800, temperature=1.0):
+    def __init__(self, net: policy.Net, num_simulations=800, temperature=0.2):
         self.net = net
         self.policy = policy.Policy(net)
         self.config = mcts.MCTSConfig(
             num_simulations=num_simulations,
             temperature=temperature,
-            use_value_network=True,
+            use_value_network=False,
         )
 
     def generate_game(self):
@@ -24,7 +24,6 @@ class SelfPlay:
         game_history = []
 
         while not state.is_terminal():
-            print(state.__repr__())
             current_player = state.get_current_player()
             state_tensor = self.policy._state_to_tensor(state)
 
@@ -46,8 +45,10 @@ class SelfPlay:
             state = state.apply_action(action)
             tree.update_root(action)
 
+            print(state.__repr__())
+
         self.policy.clear_cache()
-        winner = state.get_winner()
+        winner = state.state[1]
 
         training_data = []
         for state_tensor, policy_target, player in game_history:
@@ -109,7 +110,7 @@ if __name__ == "__main__":
     total = generate_games(
         net,
         num_games=10,
-        num_simulations=1000,
+        num_simulations=2000,
         save_dir="./selfplay_data",
         batch_size=5,
     )

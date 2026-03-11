@@ -3,7 +3,8 @@ import random
 from typing import Optional, Dict, List, Tuple
 from dataclasses import dataclass
 import policy
-import rules
+
+verbose = 1
 
 
 @dataclass
@@ -41,6 +42,7 @@ class MCTSNode:
         self.total_value = 0.0
         self.prior_prob = prior_prob
         self.player_id = state.get_current_player()
+        self.prior_dict: Optional[Dict] = None
 
     def is_fully_expanded(self) -> bool:
         return self.untried_actions is not None and len(self.untried_actions) == 0
@@ -92,26 +94,30 @@ class MCTS:
     def search(self, root_state) -> Tuple[any, Dict[any, float]]:
         self.root = MCTSNode(root_state)
 
+        if self.root.untried_actions is None:
+            self.root.untried_actions = self.root.state.get_legal_actions()
+            if self.policy:
+                actions, probs = self.policy.get_action_probs(self.root.state)
+                self.root.prior_dict = dict(zip(actions, probs))
+                for action in self.root.untried_actions:
+                    if action not in self.root.prior_dict:
+                        self.root.prior_dict[action] = 1e-8
+                total = sum(self.root.prior_dict.values())
+                self.root.prior_dict = {
+                    k: v / total for k, v in self.root.prior_dict.items()
+                }
+
         if self.policy and self.config.dirichlet_epsilon > 0:
             self._add_dirichlet_noise(self.root)
 
-        for i in range(self.config.num_simulations):
+        for _ in range(self.config.num_simulations):
             node = self._select(self.root)
             value = self._evaluate(node)
             self._backup(node, value)
-            if i % 100 == 0:
-                visits = {a: n.visit_count for a, n in self.root.children.items()}
-                values = {
-                    a: round(n.total_value, 2) for a, n in self.root.children.items()
-                }
-                print(f"Sim {i}: visits={visits}, values={values}")
+        if verbose:
+            self._print_root_stats(step="final")
 
         action_visits = {a: n.visit_count for a, n in self.root.children.items()}
-        action_values = {
-            a: round(n.total_value, 2) for a, n in self.root.children.items()
-        }
-        print(f"Final visits: {action_visits}")
-        print(f"Final values: {action_values}")
         total_visits = sum(action_visits.values())
 
         if self.config.temperature == 0:
@@ -128,7 +134,39 @@ class MCTS:
                 list(probs.keys()), weights=list(probs.values())
             )[0]
 
+        if verbose:
+            print("\nFinal action probabilities:")
+            for a, p in sorted(probs.items(), key=lambda x: -x[1]):
+                print(f"  {a}: {p:.3f} (visits: {action_visits[a]})")
+            print(f"Chosen action: {best_action}")
         return best_action, probs
+
+    def _print_root_stats(self, step):
+        if not self.root or not self.root.children:
+            return
+
+        print(f"\n--- Step {step} ---")
+        header = f"{'Action':<10} {'Visits':<8} {'Q_root':<8} {'Q_child':<8} {'Prior':<8} {'UCT_root':<8}"
+        print(header)
+        print("-" * len(header))
+
+        total_visits = self.root.visit_count
+        sqrt_parent = math.sqrt(total_visits) if total_visits > 0 else 1.0
+
+        for action, child in sorted(
+            self.root.children.items(), key=lambda x: x[1].visit_count, reverse=True
+        ):
+            q_child = child.mean_value()
+            q_root = -q_child
+            prior = child.prior_prob
+            uct_root = q_root + self.config.c_puct * prior * sqrt_parent / (
+                1 + child.visit_count
+            )
+            print(
+                f"{str(action):<10} {child.visit_count:<8} {q_root:<8.3f} {q_child:<8.3f} {prior:<8.3f} {uct_root:<8.3f}"
+            )
+
+        print(f"Total root visits: {total_visits}")
 
     def _select(self, node: MCTSNode) -> MCTSNode:
         while not node.state.is_terminal():
@@ -143,16 +181,19 @@ class MCTS:
             node.untried_actions = node.state.get_legal_actions()
             if self.policy:
                 actions, probs = self.policy.get_action_probs(node.state)
-                prior_dict = dict(zip(actions, probs))
+                node.prior_dict = dict(zip(actions, probs))
                 for action in node.untried_actions:
-                    if action not in prior_dict:
-                        prior_dict[action] = 1.0 / len(node.untried_actions)
-                node.prior_dict = prior_dict
+                    if action not in node.prior_dict:
+                        node.prior_dict[action] = 1e-8
+                total = sum(node.prior_dict.values())
+                node.prior_dict = {k: v / total for k, v in node.prior_dict.items()}
+            else:
+                node.prior_dict = {}
 
         action = random.choice(node.untried_actions)
         new_state = node.state.apply_action(action)
 
-        prior = getattr(node, "prior_dict", {}).get(action, 1.0)
+        prior = node.prior_dict.get(action, 1.0) if node.prior_dict else 1.0
         return node.expand(action, new_state, prior)
 
     def _evaluate(self, node: MCTSNode) -> float:
@@ -183,15 +224,17 @@ class MCTS:
             current = current.parent
 
     def _add_dirichlet_noise(self, node: MCTSNode):
-        if node.untried_actions is None:
-            node.untried_actions = node.state.get_legal_actions()
+        actions = node.state.get_legal_actions()
+        noise = [random.gammavariate(self.config.dirichlet_alpha, 1.0) for _ in actions]
+        noise_sum = sum(noise)
+        noise = [n / noise_sum for n in noise]
 
-        actions = node.untried_actions
-        for _ in actions:
-            noise = random.gammavariate(self.config.dirichlet_alpha, 1.0)
-        noise = [n / sum(noise) for n in noise]
+        if not hasattr(node, "prior_dict") or node.prior_dict is None:
+            node.prior_dict = {a: 1.0 / len(actions) for a in actions}
 
-        node.dirichlet_noise = dict(zip(actions, noise))
+        epsilon = self.config.dirichlet_epsilon
+        for a, n in zip(actions, noise):
+            node.prior_dict[a] = (1 - epsilon) * node.prior_dict[a] + epsilon * n
 
     def update_root(self, action):
         if self.root and action in self.root.children:

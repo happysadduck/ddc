@@ -20,6 +20,7 @@ class GameState:
         legal_actions_X=set([(14, 2), (13, 3), (15, 3), (14, 4)]),
         state=(0, -1),
         last_action=None,
+        last_actions=(None, None),
     ):
         if board == None:
             board = [None] * WID * HEI
@@ -31,13 +32,13 @@ class GameState:
         self.legal_actions_X = legal_actions_X
         self.state = state
         self.last_action = last_action
+        self.last_actions = last_actions
 
     def get_legal_actions(self) -> list:
         if self.current_player:
             return list(self.legal_actions_X)
         return list(self.legal_actions_O)
 
-    # TODO
     def apply_action(self, action) -> "GameState":
         directions = [(0, 1), (0, -1), (1, 0), (-1, 0)]
         board = self.board[:]
@@ -103,11 +104,11 @@ class GameState:
 
         def update_legal_moves(pos):
             legal_state = is_legal_pos_strict(pos)
-            if legal_state[0]:
+            if legal_state[0] and pos != self.last_actions[0]:
                 legal_actions_O.add(pos)
             else:
                 legal_actions_O.discard(pos)
-            if legal_state[1]:
+            if legal_state[1] and pos != self.last_actions[1]:
                 legal_actions_X.add(pos)
             else:
                 legal_actions_X.discard(pos)
@@ -151,18 +152,14 @@ class GameState:
             else:
                 update_legal_moves((y, x))
         if board[4 * WID + 11] == None:
-            return GameState(
-                board, 1 - self.current_player, set(), set(), (1, 1), action
-            )
+            return GameState(current_player=self.current_player, state=(1, 1))
         if board[14 * WID + 3] == None:
-            return GameState(
-                board, 1 - self.current_player, set(), set(), (1, 0), action
-            )
+            return GameState(current_player=self.current_player, state=(1, 0))
         update_legal_moves(action)
         if (not legal_actions_O) or (not legal_actions_X):
-            return GameState(
-                board, 1 - self.current_player, set(), set(), (1, -1), action
-            )
+            return GameState(current_player=self.current_player, state=(1, -1))
+        new_last_actions = list(self.last_actions)
+        new_last_actions[self.current_player] = action
         return GameState(
             board,
             1 - self.current_player,
@@ -170,6 +167,7 @@ class GameState:
             legal_actions_X,
             (0, -1),
             action,
+            tuple(new_last_actions),
         )
 
     def get_current_player(self) -> int:
@@ -195,6 +193,12 @@ class GameState:
         print()
         for y in range(HEI):
             for x in range(WID):
+                if (y, x) == (4, 11):
+                    print("[red]# [/red]", end="")
+                    continue
+                if (y, x) == (14, 3):
+                    print("[green]# [/green]", end="")
+                    continue
                 if (y, x) == self.last_action:
                     print("[yellow]@ [/yellow]", end="")
                     continue
@@ -210,7 +214,7 @@ class GameState:
                     print(". ", end="")
                     continue
                 if self.board[y * WID + x] == 0:
-                    print("[red]O [red]", end="")
+                    print("[red]O [/red]", end="")
                     continue
                 if self.board[y * WID + x] == 1:
                     print("[green]X [/green]", end="")
