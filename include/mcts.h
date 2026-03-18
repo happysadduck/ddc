@@ -8,6 +8,7 @@ typedef struct MCTSBackground
     size_t action_size; // action类的大小
     Pool *state_pool;   // 状态内存池
     Pool *untried_pool; // action类的池
+    Arena *node_arena;  // 给永不释放的树节点准备的区域分配器
 
     // 规则函数和评估函数
     int (*get_legal_actions)(void *state,

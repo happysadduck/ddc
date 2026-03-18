@@ -19,6 +19,7 @@ typedef struct
 Arena *prepare_Arena(int size);
 void *arena_alloc(Arena *arena, int size);
 void arena_clear(Arena *arena);
+void arena_clear_to(Arena *arena, int size);
 void destroy_arena(Arena *arena);
 Pool *prepare_pool_from_arena(Arena *mem_src, int size, int cnt);
 Pool *prepare_pool(int size, int cnt);

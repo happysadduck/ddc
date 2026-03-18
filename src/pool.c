@@ -25,6 +25,11 @@ void arena_clear(Arena *arena)
 	arena->top = arena->data;
 }
 
+void arena_clear_to(Arena *arena, int size)
+{
+	arena->top = arena->data + size;
+}
+
 void destroy_arena(Arena *arena)
 {
 	free(arena);
@@ -85,7 +90,7 @@ void destroy_pool(Pool *pool)
 		return;
 	if (!pool->data)
 		return;
-	free(pool->data);
+	free(pool->data); /*TODO!*/
 }
 
 void *pool_alloc(Pool *pool)

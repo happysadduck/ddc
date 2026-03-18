@@ -83,8 +83,7 @@ int untried_list_create(MCTSBackground *bg, const void *actions, int num_actions
 }
 
 /**
- * 创建新节点，从 node_arena 分配 MCTSNode，从未尝试动作池构建链表。
- * @param node_arena    用于分配 MCTSNode 的 Arena
+ * 创建新节点，从 bg->node_arena 分配 MCTSNode，从未尝试动作池构建链表。
  * @param bg            MCTS 背景（含 untried_pool、index_buffer 等）
  * @param state         状态指针（已分配）
  * @param parent        父节点
@@ -93,7 +92,7 @@ int untried_list_create(MCTSBackground *bg, const void *actions, int num_actions
  * @param num_actions   合法动作数量
  * @return 新节点指针，失败返回 NULL
  */
-MCTSNode *node_create(Arena *node_arena, MCTSBackground *bg,
+MCTSNode *node_create(MCTSBackground *bg,
                       void *state, MCTSNode *parent, void *action,
                       const void *legal_actions, int num_actions)
 {
@@ -104,7 +103,7 @@ MCTSNode *node_create(Arena *node_arena, MCTSBackground *bg,
 
     /* 分配节点内存（额外预留动作存储空间） */
     size_t node_size = sizeof(MCTSNode) + bg->action_size;
-    MCTSNode *node = (MCTSNode *)arena_alloc(node_arena, (int)node_size);
+    MCTSNode *node = (MCTSNode *)arena_alloc(bg->node_arena, (int)node_size);
 
     node->state = state;
     node->parent = parent;
@@ -292,11 +291,10 @@ float mcts_evaluate(MCTSNode *node, MCTSBackground *bg)
 /**
  * 扩展阶段：为叶子节点添加一个子节点。
  * @param leaf         叶子节点（num_untried > 0）
- * @param node_arena   用于分配 MCTSNode 的 Arena
  * @param bg           MCTS 背景
  * @return 新子节点指针，失败返回 NULL
  */
-MCTSNode *mcts_expand(MCTSNode *leaf, Arena *node_arena, MCTSBackground *bg)
+MCTSNode *mcts_expand(MCTSNode *leaf, MCTSBackground *bg)
 {
     /* 弹出随机未尝试动作 */
     char action_buffer[bg->action_size]; /* 局部缓冲区，避免覆盖bg->action_buffer */
@@ -316,7 +314,7 @@ MCTSNode *mcts_expand(MCTSNode *leaf, Arena *node_arena, MCTSBackground *bg)
     }
 
     /* 创建子节点 */
-    MCTSNode *child = node_create(node_arena, bg, new_state, leaf,
+    MCTSNode *child = node_create(bg, new_state, leaf,
                                   action_buffer, bg->action_buffer, num_actions);
     if (!child)
     {
@@ -373,4 +371,47 @@ void mcts_best_action(MCTSNode *root, void *action_out, MCTSBackground *bg)
         void *action = (char *)best_child + sizeof(MCTSNode);
         memcpy(action_out, action, bg->action_size);
     }
+}
+
+/**
+ * 创建根节点
+ */
+MCTSNode *mcts_create_root(MCTSBackground *bg, void *state)
+{
+    int num_actions = bg->get_legal_actions(state, bg->action_buffer, bg->max_actions);
+    if (num_actions < 0)
+        return NULL;
+    return node_create(bg, state, NULL, NULL, bg->action_buffer, num_actions);
+}
+
+/**
+ * 执行多次MCTS迭代
+ */
+void mcts_search(MCTSNode *root, MCTSBackground *bg, int num_iterations)
+{
+    for (int i = 0; i < num_iterations; ++i)
+    {
+        MCTSNode *leaf = mcts_select(root, bg->exploration_constant, bg->is_terminal);
+        if (!leaf)
+            continue;
+        if (!bg->is_terminal(leaf->state) && leaf->num_untried > 0)
+        {
+            leaf = mcts_expand(leaf, bg);
+            if (!leaf)
+                continue;
+        }
+        float value = mcts_evaluate(leaf, bg);
+        mcts_backup(leaf, value);
+    }
+}
+
+/**
+ * 推荐动作：创建根节点，执行搜索，输出最佳动作，并清理内部资源
+ */
+void mcts_recommend(void *state, MCTSBackground *bg, void *action_out, int num_iterations, Arena *node_arena)
+{
+    MCTSNode *root = mcts_create_root(bg, state);
+    mcts_search(root, bg, num_iterations);
+    mcts_best_action(root, action_out, bg);
+    /*TODO: 清理*/
 }
