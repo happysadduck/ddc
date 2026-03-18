@@ -1,18 +1,21 @@
 #ifndef MCTS_H
 #define MCTS_H
 
+#include "pool.h"
+
 typedef struct MCTSBackground
 {
-    size_t action_size;
+    size_t action_size; // action类的大小
+    Pool *state_pool;   // 状态内存池
+    Pool *untried_pool; // action类的池
 
-    // 状态内存池
-    Pool *state_pool;
-
-    // 核心函数
-    int (*get_legal_actions)(void *state, void *actions_buffer, int buffer_capacity);
+    // 规则函数和评估函数
+    int (*get_legal_actions)(void *state,
+                             void *actions_buffer,
+                             int buffer_capacity);    // 返回合法动作数量, 错误则返回负数错误码
     void *(*apply_action)(void *state, void *action); // 返回新状态（从 state_pool 分配）
-    int (*is_terminal)(void *state);
-    float (*evaluate)(void *state); // 神经网络评估
+    int (*is_terminal)(void *state);                  // 是否终局
+    float (*evaluate)(void *state);                   // 神经网络评估
 
     // 策略开关与函数
     int use_policy;                                       // 0: 随机 rollout, 1: 使用策略网络
@@ -23,21 +26,19 @@ typedef struct MCTSBackground
     int *index_buffer;   // 大小至少为 max_actions
     int max_actions;     // 缓冲区容量
 
-    // MCTS 参数
-    float exploration_constant;
+    float exploration_constant; // MCTS 参数: 探索常数
 } MCTSBackground;
 
 typedef struct MCTSNode
 {
-    void *state;                // 当前状态（外部管理）
-    struct MCTSNode *parent;    // 父节点（若为根则为NULL）
-    int visits;                 // 访问次数
-    float total_value;          // 累计价值（从当前玩家视角）
-    int num_children;           // 已有子节点数量
-    int capacity_children;      // 子节点数组容量
-    struct MCTSNode **children; // 子节点指针数组
-    void *untried_actions;      // 尚未扩展的合法动作列表
-    int num_untried;            // 剩余未尝试动作数
+    void *state;               // 当前状态（外部管理）
+    struct MCTSNode *parent;   // 父节点（若为根则为NULL）
+    int visits;                // 访问次数
+    float total_value;         // 累计价值（从当前玩家视角）
+    struct MCTSNode *children; // 子节点链表的头
+    struct MCTSNode *next;     // 侵入式链表
+    void *untried_actions;     // 尚未扩展的合法动作链表头
+    int num_untried;           // 剩余未尝试动作数
 } MCTSNode;
 
 typedef struct UntriedAction
