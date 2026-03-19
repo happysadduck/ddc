@@ -16,14 +16,15 @@ typedef struct
     int block_size;
 } Pool;
 
-Arena *prepare_Arena(int size);
+int sizeof_arena(int size);
+Arena *prepare_arena(int size, void *data);
 void *arena_alloc(Arena *arena, int size);
 void arena_clear(Arena *arena);
 void arena_clear_to(Arena *arena, int size);
-void destroy_arena(Arena *arena);
-Pool *prepare_pool_from_arena(Arena *mem_src, int size, int cnt);
-Pool *prepare_pool(int size, int cnt);
-void destroy_pool(Pool *pool);
+void *start_of_arena(Arena *arena);
+int sizeof_pool(int size, int cnt);
+Pool *prepare_pool(int size, int cnt, void *data);
+void *start_of_pool(Pool *pool);
 void *pool_alloc(Pool *pool);
 int pool_return(Pool *pool, void *ptr);
 

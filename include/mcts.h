@@ -8,7 +8,7 @@ typedef struct MCTSBackground
     size_t action_size; // action类的大小
     Pool *state_pool;   // 状态内存池
     Pool *untried_pool; // action类的池
-    Arena *node_arena;  // 给永不释放的树节点准备的区域分配器
+    Arena *total_arena; // 总区域分配器
 
     // 规则函数和评估函数
     int (*get_legal_actions)(void *state,
@@ -47,5 +47,20 @@ typedef struct UntriedAction
     struct UntriedAction *next;
     // 动作数据紧跟在后面，大小为 bg->action_size
 } UntriedAction;
+
+void make_mcts_bg(
+    int (*get_legal_actions)(void *state,
+                             void *actions_buffer,
+                             int buffer_capacity),
+    void *(*apply_action)(void *state, void *action),
+    int (*is_terminal)(void *state),
+    int action_size,
+    int state_size,
+    int use_policy,
+    void (*policy_sample)(void *state, void *action_out),
+    float (*evaluate)(void *state),
+    float exploration_constant,
+    void *buf,
+    MCTSBackground *out);
 
 #endif

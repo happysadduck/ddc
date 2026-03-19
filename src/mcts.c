@@ -83,7 +83,7 @@ int untried_list_create(MCTSBackground *bg, const void *actions, int num_actions
 }
 
 /**
- * 创建新节点，从 bg->node_arena 分配 MCTSNode，从未尝试动作池构建链表。
+ * 创建新节点，从 bg->total_arena 分配 MCTSNode，从未尝试动作池构建链表。
  * @param bg            MCTS 背景（含 untried_pool、index_buffer 等）
  * @param state         状态指针（已分配）
  * @param parent        父节点
@@ -103,7 +103,7 @@ MCTSNode *node_create(MCTSBackground *bg,
 
     /* 分配节点内存（额外预留动作存储空间） */
     size_t node_size = sizeof(MCTSNode) + bg->action_size;
-    MCTSNode *node = (MCTSNode *)arena_alloc(bg->node_arena, (int)node_size);
+    MCTSNode *node = (MCTSNode *)arena_alloc(bg->total_arena, (int)node_size);
 
     node->state = state;
     node->parent = parent;
@@ -406,12 +406,72 @@ void mcts_search(MCTSNode *root, MCTSBackground *bg, int num_iterations)
 }
 
 /**
- * 推荐动作：创建根节点，执行搜索，输出最佳动作，并清理内部资源
+ * 推荐动作：创建根节点，执行搜索，输出最佳动作
  */
-void mcts_recommend(void *state, MCTSBackground *bg, void *action_out, int num_iterations, Arena *node_arena)
+void mcts_recommend(void *state, MCTSBackground *bg, void *action_out, int num_iterations, Arena *total_arena)
 {
     MCTSNode *root = mcts_create_root(bg, state);
     mcts_search(root, bg, num_iterations);
     mcts_best_action(root, action_out, bg);
-    /*TODO: 清理*/
+}
+
+int mcts_bg_mem_estimate(
+    int max_iterations, int max_actions, int action_size, int state_size)
+{
+    int total = 0;
+    // Arena 控制块本身
+    total += sizeof(Arena);
+    // 节点内存
+    int max_nodes = max_iterations + 1;
+    int node_mem = max_nodes * (sizeof(MCTSNode) + action_size);
+    total += node_mem;
+    // 临时缓冲区
+    int temp_mem = max_actions * (action_size + sizeof(int));
+    total += temp_mem;
+    // 节点内存池
+    total += sizeof_pool(state_size, max_nodes);
+    int untried_block_size = sizeof(UntriedAction) + action_size;
+    int max_untried_nodes = max_iterations * max_actions;
+    total += sizeof_pool(untried_block_size, max_untried_nodes);
+    return total;
+}
+
+void make_mcts_bg(
+    int (*get_legal_actions)(void *state,
+                             void *actions_buffer,
+                             int buffer_capacity),
+    void *(*apply_action)(void *state, void *action),
+    int (*is_terminal)(void *state),
+    int action_size,
+    int state_size,
+    int max_actions,
+    int use_policy,
+    void (*policy_sample)(void *state, void *action_out),
+    float (*evaluate)(void *state),
+    float exploration_constant,
+    int max_iterations,
+    void *buf, int buf_size, MCTSBackground *out)
+{
+    Arena *arena = prepare_arena(buf_size, buf);
+    out->action_buffer = arena_alloc(arena, max_actions * action_size);
+    out->index_buffer = (int *)arena_alloc(arena, max_actions * sizeof(int));
+    out->state_pool = prepare_pool(
+        state_size, max_iterations + 1,
+        arena_alloc(arena, sizeof_pool(state_size, max_iterations + 1)));
+    out->untried_pool = prepare_pool(
+        sizeof(UntriedAction) + action_size, max_iterations * max_actions,
+        arena_alloc(
+            arena, sizeof_pool((sizeof(UntriedAction) + action_size),
+                               max_iterations * max_actions)));
+    out->get_legal_actions = get_legal_actions;
+    out->apply_action = apply_action;
+    out->is_terminal = is_terminal;
+    out->action_size = action_size;
+    out->use_policy = use_policy;
+    out->policy_sample = policy_sample;
+    out->evaluate = evaluate;
+    out->exploration_constant = exploration_constant;
+    out->max_actions = max_actions;
+
+    out->total_arena = arena;
 }

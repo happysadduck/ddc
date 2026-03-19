@@ -1,10 +1,14 @@
-#include <stdlib.h>
 #include <string.h>
 #include "pool.h"
 
-Arena *prepare_Arena(int size)
+int sizeof_arena(int size)
 {
-	Arena *out = (Arena *)malloc(sizeof(Arena) + size);
+	return sizeof(Arena) + size;
+}
+
+Arena *prepare_arena(int size, void *data)
+{
+	Arena *out = (Arena *)data;
 	out->data = (char *)(out + 1);
 	out->max_size = size;
 	out->top = out->data;
@@ -30,12 +34,26 @@ void arena_clear_to(Arena *arena, int size)
 	arena->top = arena->data + size;
 }
 
-void destroy_arena(Arena *arena)
+void *start_of_arena(Arena *arena)
 {
-	free(arena);
+	return (void *)arena;
 }
 
-static prepare_pool_general(int size, int cnt, Arena *arena, int is_from_arena)
+int sizeof_pool(int size, int cnt)
+{
+	int loop_cnt = 0;
+	int actual_size = 1;
+	while (actual_size < size &&
+		   loop_cnt < 10000)
+	{
+		loop_cnt++;
+		actual_size <<= 1;
+	}
+	size = actual_size;
+	return size * cnt + sizeof(Pool) + cnt * sizeof(char *);
+}
+
+Pool *prepare_pool(int size, int cnt, void *data)
 {
 	int actual_size;
 	int loop_cnt;
@@ -54,10 +72,7 @@ static prepare_pool_general(int size, int cnt, Arena *arena, int is_from_arena)
 	size = actual_size;
 	data_zone_size = size * cnt;
 	total_size = data_zone_size + sizeof(Pool) + cnt * sizeof(char *);
-	if (is_from_arena)
-		total_pool = (char *)arena_alloc(arena, total_size);
-	else
-		total_pool = (char *)malloc(total_size);
+	total_pool = (char *)data;
 	if (!total_pool)
 		return NULL;
 	memset(total_pool, 0, total_size);
@@ -73,24 +88,9 @@ static prepare_pool_general(int size, int cnt, Arena *arena, int is_from_arena)
 	return pool;
 }
 
-Pool *prepare_pool_from_arena(Arena *arena, int size, int cnt)
+void *start_of_pool(Pool *pool)
 {
-	return prepare_pool_general(size, cnt, arena, 1);
-}
-
-Pool *
-prepare_pool(int size, int cnt)
-{
-	return prepare_pool_general(size, cnt, NULL, 0);
-}
-
-void destroy_pool(Pool *pool)
-{
-	if (!pool)
-		return;
-	if (!pool->data)
-		return;
-	free(pool->data); /*TODO!*/
+	return (void *)(pool->data);
 }
 
 void *pool_alloc(Pool *pool)
