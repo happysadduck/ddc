@@ -1,4 +1,5 @@
-#include <stddef.h>
+#include <stdlib.h>
+#include <string.h>
 #include <math.h>
 #include "mcts_helper.h"
 #include "pool.h"

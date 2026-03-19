@@ -39,7 +39,7 @@ void mcts_search(MCTSNode *root, MCTSBackground *bg, int num_iterations)
 /**
  * 推荐动作：创建根节点，执行搜索，输出最佳动作并清理
  */
-void mcts_recommend(void *state, MCTSBackground *bg, void *action_out, int num_iterations, Arena *total_arena)
+void mcts_recommend(void *state, MCTSBackground *bg, void *action_out, int num_iterations)
 {
     MCTSNode *root = mcts_create_root(bg, state);
     mcts_search(root, bg, num_iterations);

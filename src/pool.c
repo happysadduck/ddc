@@ -53,7 +53,6 @@ Pool *prepare_pool(int size, int cnt, void *data)
 	int actual_size;
 	int loop_cnt;
 	int data_zone_size;
-	int total_size;
 	char *total_pool = NULL;
 	Pool *pool = NULL;
 	actual_size = 1;
@@ -61,7 +60,6 @@ Pool *prepare_pool(int size, int cnt, void *data)
 		actual_size <<= 1;
 	size = actual_size;
 	data_zone_size = size * cnt;
-	total_size = data_zone_size + sizeof(Pool) + cnt * sizeof(char *);
 	total_pool = (char *)data;
 	pool = (Pool *)(total_pool + data_zone_size);
 	pool->block_size = size;
