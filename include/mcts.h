@@ -6,6 +6,8 @@
 typedef struct MCTSBackground
 {
     int action_size;    // action类的大小
+    int state_size;     // state类的大小
+    int data_size;      // 数据区大小(各种内存池, 临时缓冲区, arena的剩余空间都是节点)
     Pool *state_pool;   // 状态内存池
     Pool *untried_pool; // action类的池
     Arena *total_arena; // 总区域分配器

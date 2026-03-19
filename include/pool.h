@@ -27,5 +27,6 @@ Pool *prepare_pool(int size, int cnt, void *data);
 void *start_of_pool(Pool *pool);
 void *pool_alloc(Pool *pool);
 int pool_return(Pool *pool, void *ptr);
+void pool_clear(Pool *pool);
 
 #endif

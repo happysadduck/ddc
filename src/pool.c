@@ -1,4 +1,4 @@
-#include <string.h>
+#include <stddef.h>
 #include "pool.h"
 
 int sizeof_arena(int size)
@@ -41,14 +41,9 @@ void *start_of_arena(Arena *arena)
 
 int sizeof_pool(int size, int cnt)
 {
-	int loop_cnt = 0;
 	int actual_size = 1;
-	while (actual_size < size &&
-		   loop_cnt < 10000)
-	{
-		loop_cnt++;
+	while (actual_size < size)
 		actual_size <<= 1;
-	}
 	size = actual_size;
 	return size * cnt + sizeof(Pool) + cnt * sizeof(char *);
 }
@@ -62,20 +57,12 @@ Pool *prepare_pool(int size, int cnt, void *data)
 	char *total_pool = NULL;
 	Pool *pool = NULL;
 	actual_size = 1;
-	loop_cnt = 0;
-	while (actual_size < size &&
-		   loop_cnt < 10000)
-	{
-		loop_cnt++;
+	while (actual_size < size)
 		actual_size <<= 1;
-	}
 	size = actual_size;
 	data_zone_size = size * cnt;
 	total_size = data_zone_size + sizeof(Pool) + cnt * sizeof(char *);
 	total_pool = (char *)data;
-	if (!total_pool)
-		return NULL;
-	memset(total_pool, 0, total_size);
 	pool = (Pool *)(total_pool + data_zone_size);
 	pool->block_size = size;
 	pool->data = total_pool;
@@ -84,7 +71,6 @@ Pool *prepare_pool(int size, int cnt, void *data)
 	for (loop_cnt = 0; loop_cnt < cnt; loop_cnt++)
 		*(pool->stack_top)++ = pool->data + (loop_cnt * pool->block_size);
 	pool->stack_top--;
-	total_pool = NULL;
 	return pool;
 }
 
@@ -112,4 +98,16 @@ int pool_return(Pool *pool,
 	pool->stack_top++;
 	*pool->stack_top = ptr;
 	return 1;
+}
+
+void pool_clear(Pool *pool)
+{
+	int block_count = ((char *)pool - pool->data) / pool->block_size;
+	char **stack_ptr = pool->stack;
+
+	for (int i = 0; i < block_count; i++)
+	{
+		*stack_ptr++ = pool->data + i * pool->block_size;
+	}
+	pool->stack_top = stack_ptr - 1;
 }

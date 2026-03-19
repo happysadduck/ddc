@@ -37,13 +37,16 @@ void mcts_search(MCTSNode *root, MCTSBackground *bg, int num_iterations)
 }
 
 /**
- * 推荐动作：创建根节点，执行搜索，输出最佳动作
+ * 推荐动作：创建根节点，执行搜索，输出最佳动作并清理
  */
 void mcts_recommend(void *state, MCTSBackground *bg, void *action_out, int num_iterations, Arena *total_arena)
 {
     MCTSNode *root = mcts_create_root(bg, state);
     mcts_search(root, bg, num_iterations);
     mcts_best_action(root, action_out, bg);
+    pool_clear(bg->state_pool);
+    pool_clear(bg->untried_pool);
+    arena_clear_to(bg->total_arena, bg->data_size);
 }
 
 int mcts_bg_mem_estimate(
@@ -84,16 +87,23 @@ void make_mcts_bg(
     void *buf, int buf_size, MCTSBackground *out)
 {
     Arena *arena = prepare_arena(buf_size, buf);
+    int data_lenth = 0;
     out->action_buffer = arena_alloc(arena, max_actions * action_size);
+    data_lenth += max_actions * action_size;
     out->index_buffer = (int *)arena_alloc(arena, max_actions * sizeof(int));
+    data_lenth += max_actions * sizeof(int);
     out->state_pool = prepare_pool(
         state_size, max_iterations + 1,
         arena_alloc(arena, sizeof_pool(state_size, max_iterations + 1)));
+    data_lenth += sizeof_pool(state_size, max_iterations + 1);
     out->untried_pool = prepare_pool(
         sizeof(void *) + action_size, max_iterations * max_actions,
         arena_alloc(
             arena, sizeof_pool((sizeof(void *) + action_size),
                                max_iterations * max_actions)));
+    data_lenth += sizeof_pool((sizeof(void *) + action_size),
+                              max_iterations * max_actions);
+    out->data_size = data_lenth;
     out->get_legal_actions = get_legal_actions;
     out->apply_action = apply_action;
     out->is_terminal = is_terminal;
