@@ -5,24 +5,6 @@
 #include "pool.h"
 
 /**
- * 随机打乱数组
- *
- * @param indices 数组
- * @param n       数组大小
- * @return        None
- */
-static void shuffle_indices(int *indices, int n)
-{
-    for (int i = n - 1; i > 0; --i)
-    {
-        int j = rand() % (i + 1);
-        int tmp = indices[i];
-        indices[i] = indices[j];
-        indices[j] = tmp;
-    }
-}
-
-/**
  * 计算UCB(Upper Confidence Bound)值.
  *
  * @param parent_visits  父节点被访问的次数
@@ -49,8 +31,7 @@ static float ucb_value(int parent_visits, int child_visits, float child_value, f
  * @param bg            MCTS 背景
  * @param state         状态指针(已分配)
  * @param parent        父节点
- * @param action        从父节点到本节点的动作(指针, 指向大小为 bg->action_size 的数据)
- * @param legal_actions 合法动作数组(只读, 每个元素大小为 bg->action_size)
+ * @param legal_actions 合法动作数组, 直接浅拷贝.
  * @param num_actions   合法动作数量
  * @return 新节点指针, 失败返回 NULL
  */
@@ -68,7 +49,7 @@ MCTSNode *node_create(const MCTSBackground *bg,
     node->children = NULL; /* 子节点链表初始为空 */
     node->next = NULL;     /* 侵入式指针初始为空(用于父节点的链表) */
     node->num_untried = num_actions;
-    memcmp(node->untried_actions, legal_actions, bg->action_size * num_actions);
+    node->untried_actions = legal_actions;
 
     return node;
 }
@@ -86,14 +67,12 @@ static void node_add_child(MCTSNode *parent, MCTSNode *child)
 }
 
 /**
- * 从节点的未尝试动作链表中弹出一个动作, 将动作内容拷贝到 action_out.
- * @param node          目标节点
- * @param action_out    输出缓冲区, 大小至少为 bg->action_size
- * @param bg            MCTS 背景(含 untried_pool)
- *
+ * 从节点的未尝试动作列表中弹出一个动作, 返回其地址.
+ * @param node 目标节点
+ * @param bg   MCTS 背景
+ * @return     action
  * 前置条件：node->num_untried > 0
  */
-
 static void *node_pop_random_untried(MCTSNode *node, const MCTSBackground *bg)
 {
     int n = node->num_untried;
@@ -210,12 +189,13 @@ MCTSNode *mcts_expand(MCTSNode *leaf, const MCTSBackground *bg)
         return NULL;
 
     /* 获取新状态的合法动作 */
-    int num_actions = bg->get_legal_actions(new_state, bg->action_buffer, bg->max_actions);
+    void *legal_actions = arena_alloc(bg->total_arena, bg->action_size * bg->max_actions);
+    int num_actions = bg->get_legal_actions(new_state, legal_actions, bg->max_actions);
     if (num_actions < 0)
         return NULL;
 
     /* 创建子节点 */
-    MCTSNode *child = node_create(bg, new_state, leaf, bg->action_buffer, num_actions);
+    MCTSNode *child = node_create(bg, new_state, leaf, legal_actions, num_actions);
 
     /* 将子节点加入父节点 */
     node_add_child(leaf, child);

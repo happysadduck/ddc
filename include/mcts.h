@@ -15,7 +15,7 @@ typedef struct MCTSBackground
     // 规则函数和评估函数
     int (*get_legal_actions)(void *state,
                              void *actions_buffer,
-                             int buffer_capacity);   // 返回合法动作数量, 错误则返回负数错误码
+                             int buffer_capacity);   // 返回合法动作数量, 错误则返回负数错误码, 合法动作直接写进actions_buffer里
     void (*apply_action)(void *state, void *action); // 根据动作更新棋盘
     int (*is_terminal)(void *state);                 // 是否终局
     float (*evaluate)(void *state);                  // 神经网络评估
