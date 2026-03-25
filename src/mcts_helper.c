@@ -36,7 +36,7 @@ static float ucb_value(int parent_visits, int child_visits, float child_value, f
  * @return 新节点指针, 失败返回 NULL
  */
 MCTSNode *node_create(const MCTSBackground *bg,
-                      void *state, MCTSNode *parent,
+                      void *state, MCTSNode *parent, void *action,
                       const void *legal_actions, int num_actions)
 {
     /* 分配节点内存*/
@@ -48,6 +48,7 @@ MCTSNode *node_create(const MCTSBackground *bg,
     node->total_value = 0.0f;
     node->children = NULL; /* 子节点链表初始为空 */
     node->next = NULL;     /* 侵入式指针初始为空(用于父节点的链表) */
+    node->action = action;
     node->num_untried = num_actions;
     node->untried_actions = legal_actions;
 
@@ -183,7 +184,7 @@ MCTSNode *mcts_expand(MCTSNode *leaf, const MCTSBackground *bg)
 
     /* 应用动作得到新状态 */
     void *new_state = arena_alloc(bg->total_arena, bg->state_size);
-    memcpy(new_state, leaf->state, bg->state_size);
+    memcpy(new_state, leaf->state, bg->state_size); // 必须要复制一份
     bg->apply_action(leaf->state, new_action);
     if (!new_state)
         return NULL;
@@ -195,7 +196,7 @@ MCTSNode *mcts_expand(MCTSNode *leaf, const MCTSBackground *bg)
         return NULL;
 
     /* 创建子节点 */
-    MCTSNode *child = node_create(bg, new_state, leaf, legal_actions, num_actions);
+    MCTSNode *child = node_create(bg, new_state, leaf, new_action, legal_actions, num_actions);
 
     /* 将子节点加入父节点 */
     node_add_child(leaf, child);
@@ -220,19 +221,19 @@ void mcts_backup(MCTSNode *leaf, float value)
 }
 
 /**
- * 从根节点获取当前最优动作(访问次数最多的子节点对应的动作), 拷贝到 action_out.
+ * 从根节点获取当前最优动作(访问次数最多的子节点对应的动作), 并返回
  * @param root        根节点
  * @param action_out  输出缓冲区, 大小至少为 bg->action_size
  * @param bg          MCTS 背景(用于获取动作大小)
  *
  * 前置条件：root 至少有一个子节点.
  */
-void mcts_best_action(MCTSNode *root, void *action_out, const MCTSBackground *bg)
+void *mcts_best_action(MCTSNode *root, const MCTSBackground *bg)
 {
     MCTSNode *best_child = NULL;
     int max_visits = -1;
 
-    for (MCTSNode *child = root->children; child != NULL; child = child->next)
+    for (MCTSNode *child = root->children; child; child = child->next)
     {
         if (child->visits > max_visits)
         {
@@ -242,8 +243,6 @@ void mcts_best_action(MCTSNode *root, void *action_out, const MCTSBackground *bg
     }
 
     if (best_child)
-    {
-        void *action = (char *)best_child + sizeof(MCTSNode);
-        memcpy(action_out, action, bg->action_size);
-    }
+        return best_child->action;
+    return NULL;
 }

@@ -4,11 +4,11 @@
 #include "mcts.h"
 
 MCTSNode *node_create(const MCTSBackground *bg,
-                      void *state, MCTSNode *parent,
+                      void *state, MCTSNode *parent, void *action,
                       const void *legal_actions, int num_actions);
 MCTSNode *mcts_select(MCTSNode *start, float exploration, int (*is_terminal)(void *));
 MCTSNode *mcts_expand(MCTSNode *leaf, const MCTSBackground *bg);
 void mcts_backup(MCTSNode *leaf, float value);
-void mcts_best_action(MCTSNode *root, void *action_out, const MCTSBackground *bg);
+void *mcts_best_action(MCTSNode *root, const MCTSBackground *bg);
 
 #endif

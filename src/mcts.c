@@ -13,7 +13,7 @@ MCTSNode *mcts_create_root(MCTSBackground *bg, void *state)
     int num_actions = bg->get_legal_actions(state, new_actions, bg->max_actions);
     if (num_actions < 0)
         return NULL;
-    return node_create(bg, state, NULL, new_actions, num_actions);
+    return node_create(bg, state, NULL, NULL, new_actions, num_actions);
 }
 
 /**
@@ -40,12 +40,14 @@ void mcts_search(MCTSNode *root, MCTSBackground *bg, int num_iterations)
 /**
  * 推荐动作：创建根节点，执行搜索，输出最佳动作并清理
  */
-void mcts_recommend(void *state, MCTSBackground *bg, void *action_out, int num_iterations)
+void mcts_recommend(void *state, MCTSBackground *bg, int num_iterations)
 {
+    void *action_out;
     MCTSNode *root = mcts_create_root(bg, state);
     mcts_search(root, bg, num_iterations);
-    mcts_best_action(root, action_out, bg);
+    action_out = mcts_best_action(root, bg);
     arena_clear(bg->total_arena);
+    return action_out;
 }
 
 int mcts_bg_mem_estimate(

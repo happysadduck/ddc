@@ -6,7 +6,7 @@
 
 /*
  * 矩阵乘法：C = A * B
- * 其中 A 是 m×k 矩阵，B 是 k×n 矩阵，C 是 m×n 矩阵（行优先存储）
+ * 其中 A 是 m×k 矩阵，B 是 k×n 矩阵，C 是 m×n 矩阵(行优先存储)
  * @param A 左矩阵，大小为 m×k
  * @param B 右矩阵，大小为 k×n
  * @param C 输出矩阵，大小为 m×n，函数执行前不必初始化
@@ -39,7 +39,7 @@ void mat_mul(const float *A, const float *B, float *C, int m, int n, int k)
 }
 
 /*
- * 向量加法：out = a + b （逐元素相加）
+ * 向量加法：out = a + b (逐元素相加)
  * @param a 输入向量，长度为 n
  * @param b 输入向量，长度为 n
  * @param out 输出向量，长度为 n，与 a、b 可重叠
@@ -54,7 +54,7 @@ void vec_add(const float *a, const float *b, float *out, int n)
 }
 
 /*
- * ReLU 激活函数（原地操作）：x = max(0, x)
+ * ReLU 激活函数(原地操作)：x = max(0, x)
  * 将输入向量 x 中所有负值元素置为 0，正值保持不变
  * @param x 输入/输出向量，长度为 n，函数执行后会被修改
  * @param n 向量的长度
@@ -71,7 +71,7 @@ void relu(float *x, int n)
 }
 
 /*
- * Softmax 函数（原地操作）：将输入向量 x 转换为概率分布
+ * Softmax 函数(原地操作)：将输入向量 x 转换为概率分布
  * 计算过程：先减去最大值防止溢出，再取指数并归一化
  * @param x 输入/输出向量，长度为 n，函数执行后得到 softmax 结果
  * @param n 向量的长度
@@ -116,7 +116,7 @@ void init_weights(float *w, int size, float scale)
 
 /*
  * 外积：计算向量 a 与向量 b 的外积，结果存入矩阵 c
- * 即 c[i][j] = a[i] * b[j]，其中 c 是 m×n 矩阵（行优先）
+ * 即 c[i][j] = a[i] * b[j]，其中 c 是 m×n 矩阵(行优先)
  * @param a 左向量，长度为 m
  * @param b 右向量，长度为 n
  * @param c 输出矩阵，大小为 m×n，需预先分配
@@ -135,8 +135,8 @@ void outer_product(const float *a, const float *b, float *c, int m, int n)
 }
 
 /*
- * 矩阵（转置）乘向量：计算 A^T * v，结果存入 out
- * 其中 A 是 rows_A × cols_A 矩阵（行优先），v 是长度为 rows_A 的向量
+ * 矩阵(转置)乘向量：计算 A^T * v，结果存入 out
+ * 其中 A 是 rows_A × cols_A 矩阵(行优先)，v 是长度为 rows_A 的向量
  * 结果 out 是长度为 cols_A 的向量，out[j] = Σ_i A[i][j] * v[i]
  * @param A 输入矩阵，大小为 rows_A × cols_A
  * @param v 输入向量，长度为 rows_A
@@ -160,8 +160,8 @@ void mat_vec_mul_transpose(const float *A, const float *v, float *out, int rows_
 /*
  * 交叉熵损失函数：计算单个样本的交叉熵损失
  * 对于真实标签 label，损失为 -log(y_pred[label])，并添加微小常数防止 log(0)
- * @param y_pred 预测的概率分布向量（softmax 输出），长度为类别数
- * @param label 真实类别索引（从 0 开始）
+ * @param y_pred 预测的概率分布向量(softmax 输出)，长度为类别数
+ * @param label 真实类别索引(从 0 开始)
  * @return 交叉熵损失值
  */
 float cross_entropy(const float *y_pred, int label)

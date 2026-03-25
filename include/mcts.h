@@ -30,13 +30,14 @@ typedef struct MCTSBackground
 
 typedef struct MCTSNode
 {
-    void *state;               // 当前状态（外部管理）
-    struct MCTSNode *parent;   // 父节点（若为根则为NULL）
+    void *state;               // 当前状态(外部管理)
+    struct MCTSNode *parent;   // 父节点(若为根则为NULL)
     int visits;                // 访问次数
-    float total_value;         // 累计价值（从当前玩家视角）
+    float total_value;         // 累计价值(从当前玩家视角)
     struct MCTSNode *children; // 子节点链表的头
     struct MCTSNode *next;     // 侵入式链表, 指向下一个同辈child
     void *untried_actions;     // 尚未扩展的合法动作列表
+    void *action;              // 父节点到此节点所进行的动作
     int num_untried;           // 剩余未尝试动作数
 } MCTSNode;
 
