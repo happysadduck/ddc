@@ -41,11 +41,13 @@ typedef struct MCTSNode
     int num_untried;           // 剩余未尝试动作数
 } MCTSNode;
 
+int mcts_bg_mem_estimate(
+    int max_iterations, int max_actions, int action_size, int state_size);
 void make_mcts_bg(
     int (*get_legal_actions)(void *state,
                              void *actions_buffer,
                              int buffer_capacity),
-    void *(*apply_action)(void *state, void *action),
+    void (*apply_action)(void *state, void *action),
     int (*is_terminal)(void *state),
     int action_size,
     int state_size,
@@ -53,8 +55,9 @@ void make_mcts_bg(
     int use_policy,
     void (*policy_sample)(void *state, void *action_out),
     float (*evaluate)(void *state),
+    float (*rollout)(void *state),
     float exploration_constant,
-    int max_iterations,
     void *buf, int buf_size, MCTSBackground *out);
+void *mcts_recommend(void *state, MCTSBackground *bg, int num_iterations);
 
 #endif

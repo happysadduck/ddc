@@ -31,13 +31,14 @@ static float ucb_value(int parent_visits, int child_visits, float child_value, f
  * @param bg            MCTS 背景
  * @param state         状态指针(已分配)
  * @param parent        父节点
- * @param legal_actions 合法动作数组, 直接浅拷贝.
+ * @param action        父节点到此节点的动作, 直接浅拷贝
+ * @param legal_actions 合法动作数组, 直接浅拷贝
  * @param num_actions   合法动作数量
  * @return 新节点指针, 失败返回 NULL
  */
 MCTSNode *node_create(const MCTSBackground *bg,
                       void *state, MCTSNode *parent, void *action,
-                      const void *legal_actions, int num_actions)
+                      void *legal_actions, int num_actions)
 {
     /* 分配节点内存*/
     MCTSNode *node = (MCTSNode *)arena_alloc(bg->total_arena, sizeof(MCTSNode));
@@ -147,9 +148,7 @@ MCTSNode *mcts_select(MCTSNode *start, float exploration, int (*is_terminal)(voi
 {
     MCTSNode *node = start;
     while (!is_terminal(node->state) && node->num_untried == 0)
-    {
         node = node_select_best_child(node, exploration);
-    }
     return node;
 }
 
@@ -162,13 +161,9 @@ MCTSNode *mcts_select(MCTSNode *start, float exploration, int (*is_terminal)(voi
 float mcts_evaluate(MCTSNode *node, const MCTSBackground *bg)
 {
     if (bg->use_policy)
-    {
         return bg->evaluate(node->state);
-    }
     else
-    {
         return bg->rollout(node->state);
-    }
 }
 
 /**
@@ -228,7 +223,7 @@ void mcts_backup(MCTSNode *leaf, float value)
  *
  * 前置条件：root 至少有一个子节点.
  */
-void *mcts_best_action(MCTSNode *root, const MCTSBackground *bg)
+void *mcts_best_action(MCTSNode *root)
 {
     MCTSNode *best_child = NULL;
     int max_visits = -1;
