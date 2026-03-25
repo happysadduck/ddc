@@ -15,10 +15,10 @@ typedef struct MCTSBackground
     // 规则函数和评估函数
     int (*get_legal_actions)(void *state,
                              void *actions_buffer,
-                             int buffer_capacity);    // 返回合法动作数量, 错误则返回负数错误码
-    void *(*apply_action)(void *state, void *action); // 返回新状态（从 state_pool 分配）
-    int (*is_terminal)(void *state);                  // 是否终局
-    float (*evaluate)(void *state);                   // 神经网络评估
+                             int buffer_capacity);   // 返回合法动作数量, 错误则返回负数错误码
+    void (*apply_action)(void *state, void *action); // 根据动作更新棋盘
+    int (*is_terminal)(void *state);                 // 是否终局
+    float (*evaluate)(void *state);                  // 神经网络评估
 
     // 策略开关与函数
     int use_policy;                                       // 0: 随机 rollout, 1: 使用策略网络
@@ -39,8 +39,8 @@ typedef struct MCTSNode
     int visits;                // 访问次数
     float total_value;         // 累计价值（从当前玩家视角）
     struct MCTSNode *children; // 子节点链表的头
-    struct MCTSNode *next;     // 侵入式链表
-    void *untried_actions;     // 尚未扩展的合法动作链表头
+    struct MCTSNode *next;     // 侵入式链表, 指向下一个同辈child
+    void *untried_actions;     // 尚未扩展的合法动作列表
     int num_untried;           // 剩余未尝试动作数
 } MCTSNode;
 
