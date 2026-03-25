@@ -9,10 +9,11 @@
  */
 MCTSNode *mcts_create_root(MCTSBackground *bg, void *state)
 {
-    int num_actions = bg->get_legal_actions(state, bg->action_buffer, bg->max_actions);
+    void *new_actions = arena_alloc(bg->total_arena, bg->action_size * bg->max_actions);
+    int num_actions = bg->get_legal_actions(state, new_actions, bg->max_actions);
     if (num_actions < 0)
         return NULL;
-    return node_create(bg, state, NULL, NULL, bg->action_buffer, num_actions);
+    return node_create(bg, state, NULL, new_actions, num_actions);
 }
 
 /**
@@ -44,9 +45,7 @@ void mcts_recommend(void *state, MCTSBackground *bg, void *action_out, int num_i
     MCTSNode *root = mcts_create_root(bg, state);
     mcts_search(root, bg, num_iterations);
     mcts_best_action(root, action_out, bg);
-    pool_clear(bg->state_pool);
-    pool_clear(bg->untried_pool);
-    arena_clear_to(bg->total_arena, bg->data_size);
+    arena_clear(bg->total_arena);
 }
 
 int mcts_bg_mem_estimate(
@@ -55,18 +54,13 @@ int mcts_bg_mem_estimate(
     int total = 0;
     // Arena 控制块本身
     total += sizeof(Arena);
-    // 节点内存
+    // 节点内存(包括每个节点挂载的一个state)
     int max_nodes = max_iterations + 1;
-    int node_mem = max_nodes * (sizeof(MCTSNode) + action_size);
+    int node_mem = max_nodes * (sizeof(MCTSNode) + state_size);
     total += node_mem;
-    // 临时缓冲区
-    int temp_mem = max_actions * (action_size + sizeof(int));
-    total += temp_mem;
-    // 节点内存池
-    total += sizeof_pool(state_size, max_nodes);
-    int untried_block_size = sizeof(void *) + action_size;
-    int max_untried_nodes = max_iterations * max_actions;
-    total += sizeof_pool(untried_block_size, max_untried_nodes);
+    // 所有action的内存
+    int actions_mem = max_nodes * max_actions; // 假设每个节点都全都扩展, 非常保守
+    total += actions_mem;
     return total;
 }
 
@@ -82,28 +76,13 @@ void make_mcts_bg(
     int use_policy,
     void (*policy_sample)(void *state, void *action_out),
     float (*evaluate)(void *state),
+    float (*rollout)(void *state),
     float exploration_constant,
     int max_iterations,
     void *buf, int buf_size, MCTSBackground *out)
 {
     Arena *arena = prepare_arena(buf_size, buf);
     int data_lenth = 0;
-    out->action_buffer = arena_alloc(arena, max_actions * action_size);
-    data_lenth += max_actions * action_size;
-    out->index_buffer = (int *)arena_alloc(arena, max_actions * sizeof(int));
-    data_lenth += max_actions * sizeof(int);
-    out->state_pool = prepare_pool(
-        state_size, max_iterations + 1,
-        arena_alloc(arena, sizeof_pool(state_size, max_iterations + 1)));
-    data_lenth += sizeof_pool(state_size, max_iterations + 1);
-    out->untried_pool = prepare_pool(
-        sizeof(void *) + action_size, max_iterations * max_actions,
-        arena_alloc(
-            arena, sizeof_pool((sizeof(void *) + action_size),
-                               max_iterations * max_actions)));
-    data_lenth += sizeof_pool((sizeof(void *) + action_size),
-                              max_iterations * max_actions);
-    out->data_size = data_lenth;
     out->get_legal_actions = get_legal_actions;
     out->apply_action = apply_action;
     out->is_terminal = is_terminal;
@@ -111,6 +90,7 @@ void make_mcts_bg(
     out->use_policy = use_policy;
     out->policy_sample = policy_sample;
     out->evaluate = evaluate;
+    out->rollout = rollout;
     out->exploration_constant = exploration_constant;
     out->max_actions = max_actions;
 

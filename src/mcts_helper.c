@@ -166,7 +166,7 @@ float mcts_evaluate(MCTSNode *node, const MCTSBackground *bg)
     }
     else
     {
-        return rollout(node->state, bg);
+        return bg->rollout(node->state);
     }
 }
 
