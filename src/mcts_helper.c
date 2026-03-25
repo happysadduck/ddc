@@ -73,7 +73,7 @@ static void node_add_child(MCTSNode *parent, MCTSNode *child)
  * @param node 目标节点
  * @param bg   MCTS 背景
  * @return     action
- * 前置条件：node->num_untried > 0
+ * 前置条件: node->num_untried > 0
  */
 static void *node_pop_random_untried(MCTSNode *node, const MCTSBackground *bg)
 {
@@ -138,7 +138,7 @@ static void node_update(MCTSNode *node, float value)
 }
 
 /**
- * 选择阶段：从起始节点开始, 沿着最佳子节点下降, 直到遇到终止节点或还有未尝试动作的节点.
+ * 选择阶段: 从起始节点开始, 沿着最佳子节点下降, 直到遇到终止节点或还有未尝试动作的节点.
  * @param start       起始节点
  * @param exploration 探索常数
  * @param is_terminal 外部终止判断函数
@@ -153,7 +153,7 @@ MCTSNode *mcts_select(MCTSNode *start, float exploration, int (*is_terminal)(voi
 }
 
 /**
- * 评估阶段：如果 use_policy 则调用外部 evaluate, 否则进行 rollout.
+ * 评估阶段: 如果 use_policy 则调用外部 evaluate, 否则进行 rollout.
  * @param node 要评估的节点
  * @param bg   MCTS 背景
  * @return 评估价值
@@ -167,7 +167,7 @@ float mcts_evaluate(MCTSNode *node, const MCTSBackground *bg)
 }
 
 /**
- * 扩展阶段：为叶子节点添加一个子节点.
+ * 扩展阶段: 为叶子节点添加一个子节点.
  * @param leaf         叶子节点(num_untried > 0)
  * @param bg           MCTS 背景
  * @return 新子节点指针, 失败返回 NULL
@@ -199,7 +199,7 @@ MCTSNode *mcts_expand(MCTSNode *leaf, const MCTSBackground *bg)
 }
 
 /**
- * 回溯阶段：从叶子节点向上更新所有祖先节点的统计信息.
+ * 回溯阶段: 从叶子节点向上更新所有祖先节点的统计信息.
  * @param leaf  本次模拟的叶子节点
  * @param value 本次模拟获得的原始价值(从叶子节点视角)
  */
@@ -221,7 +221,7 @@ void mcts_backup(MCTSNode *leaf, float value)
  * @param action_out  输出缓冲区, 大小至少为 bg->action_size
  * @param bg          MCTS 背景(用于获取动作大小)
  *
- * 前置条件：root 至少有一个子节点.
+ * 前置条件: root 至少有一个子节点.
  */
 void *mcts_best_action(MCTSNode *root)
 {

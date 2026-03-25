@@ -61,16 +61,16 @@ class MCTSNode:
         parent_visits = self.visit_count
 
         def uct_score(child: MCTSNode) -> float:
-            # Q值：平均价值(从父节点视角，需要转换)
-            # 子节点的价值是从子节点player视角的，对父节点来说是负的
+            # Q值: 平均价值(从父节点视角, 需要转换)
+            # 子节点的价值是从子节点player视角的, 对父节点来说是负的
             if child.visit_count == 0:
                 q_value = 0.0
             else:
-                # 价值转换：子节点存储的是从子节点player视角的价值
-                # 对父节点来说，子节点的价值是 -child.mean_value()
+                # 价值转换: 子节点存储的是从子节点player视角的价值
+                # 对父节点来说, 子节点的价值是 -child.mean_value()
                 q_value = -child.total_value / child.visit_count
 
-            # U值：探索奖励
+            # U值: 探索奖励
             u_value = (
                 c_puct
                 * child.prior_prob
@@ -120,7 +120,7 @@ class MCTS:
         """
         self.root = MCTSNode(root_state)
 
-        # 如果有策略网络，添加Dirichlet噪声(训练时增加探索)
+        # 如果有策略网络, 添加Dirichlet噪声(训练时增加探索)
         if self.policy and self.config.dirichlet_epsilon > 0:
             self._add_dirichlet_noise(self.root)
 
@@ -153,7 +153,7 @@ class MCTS:
         return best_action, probs
 
     def _select(self, node: MCTSNode) -> MCTSNode:
-        """选择阶段：从根节点选择到叶子节点"""
+        """选择阶段: 从根节点选择到叶子节点"""
         while not node.state.is_terminal():
             if not node.is_fully_expanded():
                 return self._expand(node)
@@ -162,10 +162,10 @@ class MCTS:
         return node
 
     def _expand(self, node: MCTSNode) -> MCTSNode:
-        """扩展阶段：从untried_actions中选择一个动作扩展"""
+        """扩展阶段: 从untried_actions中选择一个动作扩展"""
         if node.untried_actions is None:
             node.untried_actions = node.state.get_legal_actions()
-            # 如果有策略网络，获取先验概率
+            # 如果有策略网络, 获取先验概率
             if self.policy:
                 actions, probs = self.policy.get_action_probs(node.state)
                 prior_dict = dict(zip(actions, probs))
@@ -182,9 +182,9 @@ class MCTS:
         return node.expand(action, new_state, prior)
 
     def _evaluate(self, node: MCTSNode) -> float:
-        """评估阶段：返回叶子节点的价值"""
+        """评估阶段: 返回叶子节点的价值"""
         if node.state.is_terminal():
-            # 游戏结束，返回实际奖励(从当前节点player视角)
+            # 游戏结束, 返回实际奖励(从当前节点player视角)
             return node.state.get_reward(node.player_id)
 
         if self.config.use_value_network and self.policy:
@@ -206,11 +206,11 @@ class MCTS:
         return current_state.get_reward(perspective_player)
 
     def _backup(self, node: MCTSNode, value: float):
-        """反向传播：将价值更新到路径上所有节点"""
+        """反向传播: 将价值更新到路径上所有节点"""
         current = node
         while current is not None:
             # value是从原始叶子节点player视角的
-            # 如果当前节点player与原始相同，加value；否则加-value
+            # 如果当前节点player与原始相同, 加value；否则加-value
             if current.player_id == node.player_id:
                 current.update(value)
             else:
@@ -227,11 +227,11 @@ class MCTS:
             noise = random.gammavariate(self.config.dirichlet_alpha, 1.0)
         noise = [n / sum(noise) for n in noise]
 
-        # 这里我们只记录噪声，实际在expand时应用
+        # 这里我们只记录噪声, 实际在expand时应用
         node.dirichlet_noise = dict(zip(actions, noise))
 
     def update_root(self, action):
-        """重用子树：执行动作后更新根节点"""
+        """重用子树: 执行动作后更新根节点"""
         if self.root and action in self.root.children:
             self.root = self.root.children[action]
             self.root.parent = None  # 断开旧连接
@@ -252,7 +252,7 @@ class MCTS:
         }
 
 
-# ==================== 使用示例：井字棋 ====================
+# ==================== 使用示例: 井字棋 ====================
 
 
 class TicTacToeState:
@@ -343,4 +343,4 @@ if __name__ == "__main__":
         mcts.update_root(action)  # 重用搜索树
 
     winner = state.get_winner()
-    print(f"游戏结束，获胜者: {'X' if winner == 0 else 'O' if winner == 1 else '平局'}")
+    print(f"游戏结束, 获胜者: {'X' if winner == 0 else 'O' if winner == 1 else '平局'}")

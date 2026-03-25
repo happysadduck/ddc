@@ -23,7 +23,7 @@ typedef struct MCTSBackground
 
     // 策略开关与函数
     int use_policy;                                       // 0: 随机 rollout, 1: 使用策略网络
-    void (*policy_sample)(void *state, void *action_out); // 策略采样，将动作写入 action_out
+    void (*policy_sample)(void *state, void *action_out); // 策略采样, 将动作写入 action_out
 
     float exploration_constant; // MCTS 参数: 探索常数
 } MCTSBackground;

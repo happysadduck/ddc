@@ -38,7 +38,7 @@ static void mcts_search(MCTSNode *root, MCTSBackground *bg, int num_iterations)
 }
 
 /**
- * 推荐动作：创建根节点，执行搜索，输出最佳动作并清理
+ * 推荐动作: 创建根节点, 执行搜索, 输出最佳动作并清理
  */
 void *mcts_recommend(void *state, MCTSBackground *bg, int num_iterations)
 {
