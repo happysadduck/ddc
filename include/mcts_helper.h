@@ -5,7 +5,7 @@
 
 MCTSNode *node_create(const MCTSBackground *bg,
                       void *state, MCTSNode *parent, void *action,
-                      void *legal_actions, int num_actions);
+                      void *legal_actions, float *action_weights, int num_actions);
 MCTSNode *mcts_select(MCTSNode *start, float exploration, int (*is_terminal)(void *));
 MCTSNode *mcts_expand(MCTSNode *leaf, const MCTSBackground *bg);
 void mcts_backup(MCTSNode *leaf, float value);

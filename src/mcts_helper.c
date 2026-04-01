@@ -27,18 +27,19 @@ static float ucb_value(int parent_visits, int child_visits, float child_value, f
 }
 
 /**
- * 创建新节点, 从 bg->total_arena 分配 MCTSNode, 从未尝试动作池构建链表.
+ * 创建新节点, 从 bg->total_arena 分配 MCTSNode
  * @param bg            MCTS 背景
  * @param state         状态指针(已分配)
  * @param parent        父节点
  * @param action        父节点到此节点的动作, 直接浅拷贝
  * @param legal_actions 合法动作数组, 直接浅拷贝
+ * @param action_weights 动作权重, 直接浅拷贝
  * @param num_actions   合法动作数量
- * @return 新节点指针, 失败返回 NULL
+ * @return 新节点指针
  */
 MCTSNode *node_create(const MCTSBackground *bg,
                       void *state, MCTSNode *parent, void *action,
-                      void *legal_actions, int num_actions)
+                      void *legal_actions, float *action_weights, int num_actions)
 {
     /* 分配节点内存*/
     MCTSNode *node = (MCTSNode *)arena_alloc(bg->total_arena, sizeof(MCTSNode));
@@ -52,6 +53,7 @@ MCTSNode *node_create(const MCTSBackground *bg,
     node->action = action;
     node->num_untried = num_actions;
     node->untried_actions = legal_actions;
+    node->action_weights = action_weights;
 
     return node;
 }
@@ -68,6 +70,12 @@ static void node_add_child(MCTSNode *parent, MCTSNode *child)
     parent->children = child;
 }
 
+/**
+ * 从一个权重数组中根据权重选择一个索引
+ * @param weights 权重数组, 不必归一化
+ * @param cnt 权重数组的长度
+ * @return 选中的索引 (位于0 ~ cnt-1区间内)
+ */
 static int select_idx(const float *weights, int cnt)
 {
     float total = 0.0f;
@@ -150,7 +158,6 @@ static MCTSNode *node_select_best_child(MCTSNode *node, float exploration)
  *
  * @param node 节点
  * @param value 反向传播上来的或者直接获取的价值数
- * @return None
  */
 static void node_update(MCTSNode *node, float value)
 {
@@ -179,6 +186,7 @@ MCTSNode *mcts_select(MCTSNode *start, float exploration, int (*is_terminal)(voi
  * @param bg           MCTS 背景
  * @return 新子节点指针, 失败返回 NULL
  */
+/*特性: 即使新节点创建的时候就没有合法动作, 也会尝试创建*/
 MCTSNode *mcts_expand(MCTSNode *leaf, const MCTSBackground *bg)
 {
     /* 弹出随机未尝试动作 */
@@ -193,12 +201,16 @@ MCTSNode *mcts_expand(MCTSNode *leaf, const MCTSBackground *bg)
 
     /* 获取新状态的合法动作 */
     void *legal_actions = arena_alloc(bg->total_arena, bg->action_size * bg->max_actions);
-    int num_actions = bg->get_legal_actions(new_state, legal_actions, bg->max_actions);
+    int num_actions = bg->get_legal_actions(new_state, legal_actions);
     if (num_actions < 0)
         return NULL;
 
+    /* 获取新动作的权重 */
+    float *action_weights = arena_alloc(bg->total_arena, bg->max_actions * sizeof(float));
+    bg->policy(new_state, action_weights);
+
     /* 创建子节点 */
-    MCTSNode *child = node_create(bg, new_state, leaf, new_action, legal_actions, num_actions);
+    MCTSNode *child = node_create(bg, new_state, leaf, new_action, legal_actions, action_weights, num_actions);
 
     /* 将子节点加入父节点 */
     node_add_child(leaf, child);

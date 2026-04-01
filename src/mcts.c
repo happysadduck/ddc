@@ -10,10 +10,12 @@
 static MCTSNode *mcts_create_root(MCTSBackground *bg, void *state)
 {
     void *new_actions = arena_alloc(bg->total_arena, bg->action_size * bg->max_actions);
-    int num_actions = bg->get_legal_actions(state, new_actions, bg->max_actions);
+    int num_actions = bg->get_legal_actions(state, new_actions);
+    float *action_weights = arena_alloc(bg->total_arena, sizeof(float) * bg->max_actions);
+    bg->policy(state, action_weights);
     if (num_actions < 0)
         return NULL;
-    return node_create(bg, state, NULL, NULL, new_actions, num_actions);
+    return node_create(bg, state, NULL, NULL, new_actions, action_weights, num_actions);
 }
 
 /**
@@ -68,16 +70,13 @@ int mcts_bg_mem_estimate(
 }
 
 void make_mcts_bg(
-    int (*get_legal_actions)(void *state,
-                             void *actions_buffer,
-                             int buffer_capacity),
+    int (*get_legal_actions)(void *state, void *actions_buffer),
     void (*apply_action)(void *state, void *action),
     int (*is_terminal)(void *state),
     int action_size,
     int state_size,
     int max_actions,
-    int use_policy,
-    void (*policy_sample)(void *state, void *action_out),
+    void (*policy)(void *state, float *weights),
     float (*evaluate)(void *state),
     float exploration_constant,
     void *buf, int buf_size, MCTSBackground *out)
@@ -88,8 +87,7 @@ void make_mcts_bg(
     out->is_terminal = is_terminal;
     out->action_size = action_size;
     out->state_size = state_size;
-    out->use_policy = use_policy;
-    out->policy_sample = policy_sample;
+    out->policy = policy;
     out->evaluate = evaluate;
     out->exploration_constant = exploration_constant;
     out->max_actions = max_actions;

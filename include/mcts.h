@@ -3,7 +3,9 @@
 
 #include "pool.h"
 
-/*TODO: 移除rollout, 让policy_sample不再没用, 更新所有函数的参数说明*/
+/*TODO: 更新所有函数的参数说明*/
+/*严重问题: 奇怪的search和expand逻辑*/
+/*清除一切错误处理*/
 
 typedef struct MCTSBackground
 {
@@ -11,20 +13,15 @@ typedef struct MCTSBackground
     int state_size;  // state类的大小
     int max_actions; // 一个局面最多可能的动作数量
 
-    int data_size;      // 数据区大小(各种内存池, 临时缓冲区, arena的剩余空间都是节点)
     Arena *total_arena; // 总区域分配器
 
     // 规则函数和评估函数
-    int (*get_legal_actions)(void *state,
-                             void *actions_buffer,
-                             int buffer_capacity);   // 返回合法动作数量, 错误则返回负数错误码, 合法动作直接写进actions_buffer里
-    void (*apply_action)(void *state, void *action); // 根据动作更新棋盘
-    int (*is_terminal)(void *state);                 // 是否终局
-    float (*evaluate)(void *state);                  // 神经网络评估
-
-    // 策略开关与函数
-    int use_policy;                                       // 0: 随机 rollout, 1: 使用策略网络
-    void (*policy_sample)(void *state, void *action_out); // 策略采样, 将动作写入 action_out
+    int (*get_legal_actions)(void *state, void *actions_buffer); // 返回合法动作数量, 错误则返回负数错误码, 合法动作直接写进actions_buffer里
+    void (*apply_action)(void *state, void *action);             // 根据动作更新棋盘
+    int (*is_terminal)(void *state);                             // 是否终局, 要求同局面下没有合法动作必须要终止
+    float (*evaluate)(void *state);                              // 神经网络评估
+    void (*policy)(void *state, float *action_weights);          // 策略采样, 将概率写进action_weights
+    // 要求同state下, get_legal_actions得到的动作和policy得到的概率必须一一对应
 
     float exploration_constant; // MCTS 参数: 探索常数
 } MCTSBackground;
@@ -46,16 +43,13 @@ typedef struct MCTSNode
 int mcts_bg_mem_estimate(
     int max_iterations, int max_actions, int action_size, int state_size);
 void make_mcts_bg(
-    int (*get_legal_actions)(void *state,
-                             void *actions_buffer,
-                             int buffer_capacity),
+    int (*get_legal_actions)(void *state, void *actions_buffer),
     void (*apply_action)(void *state, void *action),
     int (*is_terminal)(void *state),
     int action_size,
     int state_size,
     int max_actions,
-    int use_policy,
-    void (*policy_sample)(void *state, void *action_out),
+    void (*policy)(void *state, float *weights),
     float (*evaluate)(void *state),
     float exploration_constant,
     void *buf, int buf_size, MCTSBackground *out);
