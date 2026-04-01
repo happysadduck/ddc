@@ -145,7 +145,7 @@ float evaluate(void *state)
         if (simulate_one((GameState *)state, 0))
             wins++;
     }
-    return (float)wins / (float)SIMULATIONS;
+    return ((float)wins / (float)SIMULATIONS - 0.5) * 2.0;
 }
 
 // 策略函数：将动作权重清零（占位实现）
@@ -159,6 +159,7 @@ void policy(void *state, float *action_weights)
 void print_board(void *state)
 {
     GameState *s = (GameState *)state;
+    printf("turn: %d\n", s->current_player);
     // 打印列标 (a-h)
     printf("  ");
     for (char col = 'a'; col <= 'h'; ++col)
@@ -191,4 +192,5 @@ void print_board(void *state)
         }
         printf("\n");
     }
+    printf("\n");
 }

@@ -192,7 +192,7 @@ MCTSNode *mcts_expand(MCTSNode *leaf, const MCTSBackground *bg)
     /* 应用动作得到新状态 */
     void *new_state = arena_alloc(bg->total_arena, bg->state_size);
     memcpy(new_state, leaf->state, bg->state_size); // 必须要复制一份
-    bg->apply_action(leaf->state, new_action);
+    bg->apply_action(new_state, new_action);
 
     /* 获取新状态的合法动作 */
     void *legal_actions = arena_alloc(bg->total_arena, bg->action_size * bg->max_actions);

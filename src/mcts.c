@@ -4,6 +4,8 @@
 #include "mcts_helper.h"
 #include "pool.h"
 
+/*TODO: 给mcts_recommend添加调试信息打印*/
+
 static MCTSNode *mcts_create_root(MCTSBackground *bg, void *state)
 {
     void *new_actions = arena_alloc(bg->total_arena, bg->action_size * bg->max_actions);
@@ -67,7 +69,7 @@ int mcts_bg_mem_estimate(
     int node_mem = max_nodes * (sizeof(MCTSNode) + state_size);
     total += node_mem;
     // 所有action的内存
-    int actions_mem = max_nodes * max_actions * action_size; // 假设每个节点都全都扩展, 非常保守
+    int actions_mem = max_nodes * max_actions * (action_size + sizeof(float)); // 假设每个节点都全都扩展, 非常保守
     total += actions_mem;
     // 由于所有节点自身的action实际上都来自于父节点的untried_action数组, 因此无需分配内存.
     return total;
@@ -85,7 +87,7 @@ void make_mcts_bg(
     float exploration_constant,
     void *buf, int buf_size, MCTSBackground *out)
 {
-    Arena *arena = prepare_arena(buf_size - sizeof(arena), buf);
+    Arena *arena = prepare_arena(buf_size - sizeof(Arena), buf);
     out->get_legal_actions = get_legal_actions;
     out->apply_action = apply_action;
     out->is_terminal = is_terminal;
