@@ -130,13 +130,10 @@ static void *node_pop_random_untried(MCTSNode *node, const MCTSBackground *bg)
  * 遍历子节点链表, 选择 UCB 值最大的子节点.
  * @param node        当前节点
  * @param exploration 探索常数
- * @return 最佳子节点, 若无子节点返回 NULL
+ * @return 最佳子节点, 照理来说必定可以找到一个子节点
  */
 static MCTSNode *node_select_best_child(MCTSNode *node, float exploration)
 {
-    if (!node->children)
-        return NULL;
-
     MCTSNode *best = NULL;
     float best_ucb = -INFINITY;
 
@@ -170,7 +167,7 @@ static void node_update(MCTSNode *node, float value)
  * @param start       起始节点
  * @param exploration 探索常数
  * @param is_terminal 外部终止判断函数
- * @return 选中的叶子节点
+ * @return 选中的叶子节点, 照理来说总能找到
  */
 MCTSNode *mcts_select(MCTSNode *start, float exploration, int (*is_terminal)(void *))
 {
@@ -184,7 +181,7 @@ MCTSNode *mcts_select(MCTSNode *start, float exploration, int (*is_terminal)(voi
  * 扩展阶段: 为叶子节点添加一个子节点.
  * @param leaf         叶子节点(num_untried > 0)
  * @param bg           MCTS 背景
- * @return 新子节点指针, 失败返回 NULL
+ * @return 新子节点指针, 照理来说总能创建成功
  */
 /*特性: 即使新节点创建的时候就没有合法动作, 也会尝试创建*/
 MCTSNode *mcts_expand(MCTSNode *leaf, const MCTSBackground *bg)
@@ -196,14 +193,10 @@ MCTSNode *mcts_expand(MCTSNode *leaf, const MCTSBackground *bg)
     void *new_state = arena_alloc(bg->total_arena, bg->state_size);
     memcpy(new_state, leaf->state, bg->state_size); // 必须要复制一份
     bg->apply_action(leaf->state, new_action);
-    if (!new_state)
-        return NULL;
 
     /* 获取新状态的合法动作 */
     void *legal_actions = arena_alloc(bg->total_arena, bg->action_size * bg->max_actions);
     int num_actions = bg->get_legal_actions(new_state, legal_actions);
-    if (num_actions < 0)
-        return NULL;
 
     /* 获取新动作的权重 */
     float *action_weights = arena_alloc(bg->total_arena, bg->max_actions * sizeof(float));
@@ -232,31 +225,4 @@ void mcts_backup(MCTSNode *leaf, float value)
         v = -v; /* 翻转价值, 用于父节点(零和博弈) */
         node = node->parent;
     }
-}
-
-/**
- * 从根节点获取当前最优动作(访问次数最多的子节点对应的动作), 并返回
- * @param root        根节点
- * @param action_out  输出缓冲区, 大小至少为 bg->action_size
- * @param bg          MCTS 背景(用于获取动作大小)
- *
- * 前置条件: root 至少有一个子节点.
- */
-void *mcts_best_action(MCTSNode *root)
-{
-    MCTSNode *best_child = NULL;
-    int max_visits = -1;
-
-    for (MCTSNode *child = root->children; child; child = child->next)
-    {
-        if (child->visits > max_visits)
-        {
-            max_visits = child->visits;
-            best_child = child;
-        }
-    }
-
-    if (best_child)
-        return best_child->action;
-    return NULL;
 }

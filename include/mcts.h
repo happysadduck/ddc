@@ -3,10 +3,6 @@
 
 #include "pool.h"
 
-/*TODO: 更新所有函数的参数说明*/
-/*严重问题: 奇怪的search和expand逻辑*/
-/*清除一切错误处理*/
-
 typedef struct MCTSBackground
 {
     int action_size; // action类的大小
@@ -16,7 +12,7 @@ typedef struct MCTSBackground
     Arena *total_arena; // 总区域分配器
 
     // 规则函数和评估函数
-    int (*get_legal_actions)(void *state, void *actions_buffer); // 返回合法动作数量, 错误则返回负数错误码, 合法动作直接写进actions_buffer里
+    int (*get_legal_actions)(void *state, void *actions_buffer); // 返回合法动作数量
     void (*apply_action)(void *state, void *action);             // 根据动作更新棋盘
     int (*is_terminal)(void *state);                             // 是否终局, 要求同局面下没有合法动作必须要终止
     float (*evaluate)(void *state);                              // 神经网络评估
@@ -53,6 +49,6 @@ void make_mcts_bg(
     float (*evaluate)(void *state),
     float exploration_constant,
     void *buf, int buf_size, MCTSBackground *out);
-void *mcts_recommend(void *state, MCTSBackground *bg, int num_iterations);
+void mcts_recommend(void *state, MCTSBackground *bg, int num_iterations, void *out);
 
 #endif

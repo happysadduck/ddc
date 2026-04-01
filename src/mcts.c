@@ -1,12 +1,9 @@
-#include <stddef.h>
+#include <string.h>
 #include <math.h>
 #include "mcts.h"
 #include "mcts_helper.h"
 #include "pool.h"
 
-/**
- * 创建根节点
- */
 static MCTSNode *mcts_create_root(MCTSBackground *bg, void *state)
 {
     void *new_actions = arena_alloc(bg->total_arena, bg->action_size * bg->max_actions);
@@ -18,38 +15,45 @@ static MCTSNode *mcts_create_root(MCTSBackground *bg, void *state)
     return node_create(bg, state, NULL, NULL, new_actions, action_weights, num_actions);
 }
 
-/**
- * 执行多次MCTS迭代
- */
 static void mcts_search(MCTSNode *root, MCTSBackground *bg, int num_iterations)
 {
     for (int i = 0; i < num_iterations; ++i)
     {
         MCTSNode *leaf = mcts_select(root, bg->exploration_constant, bg->is_terminal);
-        if (!leaf)
+        if (bg->is_terminal(leaf->state))
             continue;
-        if (!bg->is_terminal(leaf->state) && leaf->num_untried > 0)
-        {
-            leaf = mcts_expand(leaf, bg);
-            if (!leaf)
-                continue;
-        }
+        leaf = mcts_expand(leaf, bg);
         float value = bg->evaluate(leaf->state);
         mcts_backup(leaf, value);
     }
 }
 
-/**
- * 推荐动作: 创建根节点, 执行搜索, 输出最佳动作并清理
- */
-void *mcts_recommend(void *state, MCTSBackground *bg, int num_iterations)
+static void *mcts_best_action(MCTSNode *root)
+{
+    MCTSNode *best_child = NULL;
+    int max_visits = -1;
+
+    for (MCTSNode *child = root->children; child; child = child->next)
+    {
+        if (child->visits > max_visits)
+        {
+            max_visits = child->visits;
+            best_child = child;
+        }
+    }
+    if (best_child)
+        return best_child->action;
+    return NULL;
+}
+
+void mcts_recommend(void *state, MCTSBackground *bg, int num_iterations, void *out)
 {
     void *action_out;
     MCTSNode *root = mcts_create_root(bg, state);
     mcts_search(root, bg, num_iterations);
     action_out = mcts_best_action(root);
+    memcpy(out, action_out, bg->action_size);
     arena_clear(bg->total_arena);
-    return action_out;
 }
 
 int mcts_bg_mem_estimate(
