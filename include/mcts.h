@@ -3,6 +3,8 @@
 
 #include "pool.h"
 
+/*TODO: 移除rollout, 让policy_sample不再没用, 更新所有函数的参数说明*/
+
 typedef struct MCTSBackground
 {
     int action_size; // action类的大小
@@ -19,7 +21,6 @@ typedef struct MCTSBackground
     void (*apply_action)(void *state, void *action); // 根据动作更新棋盘
     int (*is_terminal)(void *state);                 // 是否终局
     float (*evaluate)(void *state);                  // 神经网络评估
-    float (*rollout)(void *state);                   // 没有神经网络? 那就随机模拟
 
     // 策略开关与函数
     int use_policy;                                       // 0: 随机 rollout, 1: 使用策略网络
@@ -37,6 +38,7 @@ typedef struct MCTSNode
     struct MCTSNode *children; // 子节点链表的头
     struct MCTSNode *next;     // 侵入式链表, 指向下一个同辈child
     void *untried_actions;     // 尚未扩展的合法动作列表
+    float *action_weights;     // 评估得到的每个动作的权重, 越大的权重选中概率越大
     void *action;              // 父节点到此节点所进行的动作
     int num_untried;           // 剩余未尝试动作数
 } MCTSNode;
@@ -55,7 +57,6 @@ void make_mcts_bg(
     int use_policy,
     void (*policy_sample)(void *state, void *action_out),
     float (*evaluate)(void *state),
-    float (*rollout)(void *state),
     float exploration_constant,
     void *buf, int buf_size, MCTSBackground *out);
 void *mcts_recommend(void *state, MCTSBackground *bg, int num_iterations);

@@ -68,6 +68,24 @@ static void node_add_child(MCTSNode *parent, MCTSNode *child)
     parent->children = child;
 }
 
+static int select_idx(const float *weights, int cnt)
+{
+    float total = 0.0f;
+    for (int i = 0; i < cnt; i++)
+        total += weights[i];
+    if (total <= 0)
+        return rand() % cnt;
+    float r = ((float)rand() / (float)RAND_MAX) * total;
+    float cumulative = 0.0f;
+    for (int i = 0; i < cnt; i++)
+    {
+        cumulative += weights[i];
+        if (r < cumulative)
+            return i;
+    }
+    return cnt - 1;
+}
+
 /**
  * 从节点的未尝试动作列表中弹出一个动作, 返回其地址.
  * @param node 目标节点
@@ -78,7 +96,7 @@ static void node_add_child(MCTSNode *parent, MCTSNode *child)
 static void *node_pop_random_untried(MCTSNode *node, const MCTSBackground *bg)
 {
     int n = node->num_untried;
-    int pick_idx = rand() % n;
+    int pick_idx = select_idx(node->action_weights, n);
     int last_idx = n - 1;
     char *base = (char *)node->untried_actions;
     char *pick_ptr = base + pick_idx * bg->action_size;
@@ -91,6 +109,9 @@ static void *node_pop_random_untried(MCTSNode *node, const MCTSBackground *bg)
             pick_ptr[i] = last_ptr[i];
             last_ptr[i] = tmp;
         }
+        float tmp = node->action_weights[pick_idx];
+        node->action_weights[pick_idx] = node->action_weights[last_idx];
+        node->action_weights[last_idx] = tmp;
         pick_ptr = last_ptr;
     }
     node->num_untried--;
@@ -150,20 +171,6 @@ MCTSNode *mcts_select(MCTSNode *start, float exploration, int (*is_terminal)(voi
     while (!is_terminal(node->state) && node->num_untried == 0)
         node = node_select_best_child(node, exploration);
     return node;
-}
-
-/**
- * 评估阶段: 如果 use_policy 则调用外部 evaluate, 否则进行 rollout.
- * @param node 要评估的节点
- * @param bg   MCTS 背景
- * @return 评估价值
- */
-float mcts_evaluate(MCTSNode *node, const MCTSBackground *bg)
-{
-    if (bg->use_policy)
-        return bg->evaluate(node->state);
-    else
-        return bg->rollout(node->state);
 }
 
 /**

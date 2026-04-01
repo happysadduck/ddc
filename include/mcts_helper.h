@@ -10,6 +10,5 @@ MCTSNode *mcts_select(MCTSNode *start, float exploration, int (*is_terminal)(voi
 MCTSNode *mcts_expand(MCTSNode *leaf, const MCTSBackground *bg);
 void mcts_backup(MCTSNode *leaf, float value);
 void *mcts_best_action(MCTSNode *root);
-float mcts_evaluate(MCTSNode *node, const MCTSBackground *bg);
 
 #endif

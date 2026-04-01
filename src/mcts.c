@@ -32,7 +32,7 @@ static void mcts_search(MCTSNode *root, MCTSBackground *bg, int num_iterations)
             if (!leaf)
                 continue;
         }
-        float value = mcts_evaluate(leaf, bg);
+        float value = bg->evaluate(leaf->state);
         mcts_backup(leaf, value);
     }
 }
@@ -79,7 +79,6 @@ void make_mcts_bg(
     int use_policy,
     void (*policy_sample)(void *state, void *action_out),
     float (*evaluate)(void *state),
-    float (*rollout)(void *state),
     float exploration_constant,
     void *buf, int buf_size, MCTSBackground *out)
 {
@@ -92,7 +91,6 @@ void make_mcts_bg(
     out->use_policy = use_policy;
     out->policy_sample = policy_sample;
     out->evaluate = evaluate;
-    out->rollout = rollout;
     out->exploration_constant = exploration_constant;
     out->max_actions = max_actions;
 
