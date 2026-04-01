@@ -85,7 +85,7 @@ void make_mcts_bg(
     float exploration_constant,
     void *buf, int buf_size, MCTSBackground *out)
 {
-    Arena *arena = prepare_arena(buf_size, buf);
+    Arena *arena = prepare_arena(buf_size - sizeof(arena), buf);
     out->get_legal_actions = get_legal_actions;
     out->apply_action = apply_action;
     out->is_terminal = is_terminal;
