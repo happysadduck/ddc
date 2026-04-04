@@ -112,13 +112,11 @@ int is_terminal(void *state)
 }
 
 // 随机模拟一次，返回当前玩家是否获胜
-static int simulate_one(GameState *state, int verbose)
+static int simulate_one(GameState *state)
 {
     GameState sim = *state; // 复制状态
     while (!is_terminal(&sim))
     {
-        if (verbose)
-            print_board(&sim);
         int actions[64];
         int n = get_legal_actions(&sim, actions);
         if (n == 0)
@@ -135,14 +133,16 @@ static int simulate_one(GameState *state, int verbose)
     return (sim.current_player != state->current_player) ? 1 : 0;
 }
 
-// 评估函数：随机模拟 100 次，返回当前玩家获胜的概率（0.0 ~ 1.0）
+// 评估函数：随机模拟 100 次，返回当前玩家获胜的评分（-1.0 ~ 1.0）, 越大越赢
 float evaluate(void *state)
 {
+    if (is_terminal(state))
+        return -1.0f;
     const int SIMULATIONS = 100;
     int wins = 0;
     for (int i = 0; i < SIMULATIONS; ++i)
     {
-        if (simulate_one((GameState *)state, 0))
+        if (simulate_one((GameState *)state))
             wins++;
     }
     return ((float)wins / (float)SIMULATIONS - 0.5) * 2.0;

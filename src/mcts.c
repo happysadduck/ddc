@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <string.h>
 #include <math.h>
 #include "mcts.h"
@@ -23,11 +24,14 @@ static void mcts_search(MCTSNode *root, MCTSBackground *bg, int num_iterations)
     for (int i = 0; i < num_iterations; ++i)
     {
         MCTSNode *leaf = mcts_select(root, bg->exploration_constant, bg->is_terminal);
-        if (bg->is_terminal(leaf->state))
-            continue;
-        leaf = mcts_expand(leaf, bg);
-        float value = bg->evaluate(leaf->state);
-        mcts_backup(leaf, value);
+        if (!bg->is_terminal(leaf->state))
+        {
+            leaf = mcts_expand(leaf, bg);
+            float value = bg->evaluate(leaf->state);
+            mcts_backup(leaf, value);
+        }
+        else
+            mcts_backup(leaf, 1.0f);
     }
 }
 
@@ -38,12 +42,15 @@ static void *mcts_best_action(MCTSNode *root)
 
     for (MCTSNode *child = root->children; child; child = child->next)
     {
+        printf("%d ", child->visits);
         if (child->visits > max_visits)
         {
             max_visits = child->visits;
             best_child = child;
         }
     }
+    printf("\nbest: %d\n", best_child->visits);
+    printf("total: %d\n\n", root->visits);
     if (best_child)
         return best_child->action;
     return NULL;
