@@ -20,7 +20,7 @@ int main()
         action_size, state_size, max_actions,
         policy,
         evaluate,
-        0.414,
+        0.707,
         buf,
         mcts_bg_size,
         &bg);

@@ -31,7 +31,7 @@ static void mcts_search(MCTSNode *root, MCTSBackground *bg, int num_iterations)
             mcts_backup(leaf, value);
         }
         else
-            mcts_backup(leaf, 1.0f);
+            mcts_backup(leaf, -1.0f);
     }
 }
 

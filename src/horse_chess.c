@@ -138,7 +138,7 @@ float evaluate(void *state)
 {
     if (is_terminal(state))
         return -1.0f;
-    const int SIMULATIONS = 100;
+    const int SIMULATIONS = 1;
     int wins = 0;
     for (int i = 0; i < SIMULATIONS; ++i)
     {

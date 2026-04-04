@@ -221,7 +221,7 @@ void mcts_backup(MCTSNode *leaf, float value)
     float v = value;
     while (node)
     {
-        node_update(node, v);
+        node_update(node, -v);
         v = -v; /* 翻转价值, 用于父节点(零和博弈) */
         node = node->parent;
     }
