@@ -21,6 +21,7 @@ Arena *prepare_arena(int size, void *data);
 void *arena_alloc(Arena *arena, int size);
 void arena_clear(Arena *arena);
 void arena_clear_to(Arena *arena, int size);
+void arena_cut(Arena *arena, int size);
 void *start_of_arena(Arena *arena);
 int sizeof_pool(int size, int cnt);
 Pool *prepare_pool(int size, int cnt, void *data);

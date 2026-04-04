@@ -5,6 +5,7 @@
 #include "pool.h"
 
 /*TODO: 给mcts_recommend添加调试信息打印*/
+/*TODO: 类似horse_chess和sp井字棋游戏, 最大步数和通常情况下的最大步数严重不一致, 导致空间浪费*/
 
 static MCTSNode *mcts_create_root(MCTSBackground *bg, void *state)
 {

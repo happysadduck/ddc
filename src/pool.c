@@ -34,6 +34,11 @@ void arena_clear_to(Arena *arena, int size)
 	arena->top = arena->data + size;
 }
 
+void arena_cut(Arena *arena, int size)
+{
+	arena->top -= size;
+}
+
 void *start_of_arena(Arena *arena)
 {
 	return (void *)arena;
